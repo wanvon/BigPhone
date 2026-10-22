@@ -36,21 +36,32 @@ public partial class App : Application
         Updater.CleanUpOldVersion();
         Log.Write($"Big Phone {Updater.CurrentVersionText} starting (portable={PhoneSettings.IsPortable}, folder={PhoneSettings.Folder})");
 
-        PhoneSettings settings;
-        try { settings = PhoneSettings.Load(); }
-        catch (Exception ex)
+        // A hand-edited settings file with a typo must not leave the phone dead: show where the
+        // mistake is, open the file, and try again when Notepad is closed.
+        PhoneSettings? settings = null;
+        while (settings == null)
         {
-            MessageBox.Show($"Could not read settings file:\n{PhoneSettings.FilePath}\n\n{ex.Message}", "Big Phone");
-            Shutdown();
-            return;
+            try { settings = PhoneSettings.Load(); }
+            catch (Exception ex)
+            {
+                Log.Write($"Settings file error: {ex.Message}");
+                var r = MessageBox.Show(
+                    $"The settings file has a mistake in it:\n\n{ex.Message}\n\n" +
+                    "Press OK to fix it in Notepad. Big Phone starts again when you close Notepad.",
+                    "Big Phone", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+                if (r != MessageBoxResult.OK) { Shutdown(); return; }
+                EditSettingsFileAndWait();
+            }
         }
 
-        if (string.IsNullOrWhiteSpace(settings.Username))
+        while (string.IsNullOrWhiteSpace(settings.Username))
         {
-            MessageBox.Show($"Please fill in the FlyNumber SIP username in:\n{PhoneSettings.FilePath}\n\nThen start Big Phone again.", "Big Phone setup");
-            System.Diagnostics.Process.Start("notepad.exe", $"\"{PhoneSettings.FilePath}\"");
-            Shutdown();
-            return;
+            var r = MessageBox.Show($"Please fill in the FlyNumber SIP \"Username\" (and \"AuthId\") in the settings file.\n\n" +
+                                    "Press OK to open it. Big Phone starts again when you close Notepad.",
+                                    "Big Phone setup", MessageBoxButton.OKCancel, MessageBoxImage.Information);
+            if (r != MessageBoxResult.OK) { Shutdown(); return; }
+            EditSettingsFileAndWait();
+            try { settings = PhoneSettings.Load(); } catch { /* reported on the next start */ }
         }
 
         string password = settings.GetPassword();
@@ -66,6 +77,19 @@ public partial class App : Application
         MainWindow = main;
         ShutdownMode = ShutdownMode.OnMainWindowClose;
         main.Show();
+    }
+
+    public static void EditSettingsFileAndWait()
+    {
+        using var p = System.Diagnostics.Process.Start("notepad.exe", $"\"{PhoneSettings.FilePath}\"");
+        p?.WaitForExit();
+    }
+
+    /// <summary>Starts a fresh copy of Big Phone and closes this one (the new copy waits for this one to exit).</summary>
+    public static void Restart()
+    {
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!, "--after-update") { UseShellExecute = false });
+        Current.Shutdown();
     }
 
     static string? AskPassword(string username)

@@ -23,7 +23,8 @@ public partial class MainWindow : Window
 
     readonly PhoneSettings _settings;
     readonly SipPhone _phone;
-    readonly Ringer _ringer;
+    Ringer _ringer;
+    Window? _helperWindow;   // menu, contacts or settings: at most one open at a time
     readonly SpeechSynthesizer? _voice;
     readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     readonly DispatcherTimer _flash = new() { Interval = TimeSpan.FromMilliseconds(700) };
@@ -48,10 +49,7 @@ public partial class MainWindow : Window
         _settings = settings;
         Title = $"Big Phone {Updater.CurrentVersionText}";
 
-        var named = _settings.SpeedDials.Where(s => !string.IsNullOrWhiteSpace(s.Name) && !string.IsNullOrWhiteSpace(s.Number)).Take(6).ToList();
-        SpeedDialList.ItemsSource = named;
-        if (named.Count == 0) SpeedDialColumn.Width = new GridLength(0);
-
+        ReloadSpeedDials();
         _ringer = new Ringer(SipPhone.FindOutputDevice(_settings.RingDevice));
         try { _voice = new SpeechSynthesizer { Volume = 100, Rate = -1 }; } catch { _voice = null; }
 
@@ -267,6 +265,7 @@ public partial class MainWindow : Window
     void OnIncoming(string number, string sipName)
     {
         _state = UiState.Incoming;
+        CloseHelperWindow();
         string known = _settings.NameForNumber(number);
         string name = known.Length > 0 ? known : sipName;
         string pretty = FormatNumber(PhoneSettings.DigitsOnly(number).Length > 0 ? PhoneSettings.DigitsOnly(number) : number);
@@ -395,22 +394,116 @@ public partial class MainWindow : Window
 
     void Decline_Click(object sender, RoutedEventArgs e) => Decline();
 
-    async void Settings_Click(object sender, RoutedEventArgs e)
-    {
-        string mode = PhoneSettings.IsPortable ? "Portable (settings next to BigPhone.exe)" : "Installed (settings in AppData)";
-        var r = MessageBox.Show(this,
-            $"Big Phone version {Updater.CurrentVersionText}\n{mode}\n\nSettings: {PhoneSettings.FilePath}\nLog: {PhoneSettings.LogPath}\n\n" +
-            "YES = open the settings file (restart Big Phone after saving)\n" +
-            "NO = check for updates now\n" +
-            "CANCEL = close this box",
-            "Big Phone settings", MessageBoxButton.YesNoCancel, MessageBoxImage.Information, MessageBoxResult.Cancel);
-        if (r == MessageBoxResult.Yes)
-        {
-            Process.Start(new ProcessStartInfo("notepad.exe", $"\"{PhoneSettings.FilePath}\"") { UseShellExecute = true });
-            return;
-        }
-        if (r != MessageBoxResult.No) return;
+    // ================================================================ helper windows (⚙)
 
+    void ReloadSpeedDials()
+    {
+        var named = _settings.SpeedDials
+            .Where(s => !string.IsNullOrWhiteSpace(s.Name) && !string.IsNullOrWhiteSpace(s.Number))
+            .Take(6).ToList();
+        SpeedDialList.ItemsSource = named;
+        SpeedDialColumn.Width = named.Count == 0 ? new GridLength(0) : new GridLength(2, GridUnitType.Star);
+    }
+
+    /// <summary>Helper windows are not modal, so an incoming call can always take over the screen.</summary>
+    void ShowHelperWindow(Window w)
+    {
+        CloseHelperWindow();
+        w.Owner = this;
+        w.Closed += (_, _) => { if (_helperWindow == w) _helperWindow = null; };
+        _helperWindow = w;
+        w.Show();
+    }
+
+    void CloseHelperWindow()
+    {
+        var w = _helperWindow;
+        _helperWindow = null;
+        if (w is ContactsWindow cw) cw.CloseForIncomingCall();
+        else w?.Close();
+    }
+
+    void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        string mode = PhoneSettings.IsPortable ? "portable" : "installed";
+        var panel = new StackPanel { Margin = new Thickness(20) };
+        panel.Children.Add(new TextBlock
+        {
+            Text = $"Big Phone {Updater.CurrentVersionText}  ({mode})", FontSize = 18, Foreground = Brushes.LightGray,
+            Margin = new Thickness(6, 0, 6, 10)
+        });
+        var menu = new Window
+        {
+            Title = "Big Phone – Menu", Content = panel, Width = 460, SizeToContent = SizeToContent.Height,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, ResizeMode = ResizeMode.NoResize,
+            Background = new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A)), ShowInTaskbar = false
+        };
+
+        void Item(string text, string color, Action action)
+        {
+            var b = new Button { Content = text, Style = (Style)FindResource("DlgButton"), Background = (Brush)new BrushConverter().ConvertFrom(color)! };
+            b.Click += (_, _) => { menu.Close(); action(); };
+            panel.Children.Add(b);
+        }
+
+        Item("👤  Contacts", "#1E4C9A", OpenContacts);
+        Item("🔧  Settings", "#3A3A3A", OpenSettings);
+        Item("⟳  Check for updates", "#3A3A3A", async () => await CheckForUpdatesInteractiveAsync());
+        Item("📝  Advanced (settings file)", "#3A3A3A", async () => await EditSettingsFileAsync());
+        Item("Close", "#2A2A2A", () => { });
+        ShowHelperWindow(menu);
+    }
+
+    /// <summary>
+    /// Opens settings.json in Notepad and restarts Big Phone when Notepad is closed, so hand edits are
+    /// picked up and never overwritten by this running copy. Never restarts in the middle of a call.
+    /// </summary>
+    async Task EditSettingsFileAsync()
+    {
+        if (MessageBox.Show(this,
+                "Account, network and other settings are in this file.\n\n" +
+                "Big Phone will restart when you close Notepad (after the call, if you are on one).\n" +
+                "If you only want to change contacts or sound, use Contacts or Settings instead.\n\n" +
+                $"Settings: {PhoneSettings.FilePath}\nLog: {PhoneSettings.LogPath}",
+                "Big Phone", MessageBoxButton.OKCancel, MessageBoxImage.Information) != MessageBoxResult.OK)
+            return;
+
+        try { _settings.Save(); } catch { }   // the file should show what is in use right now
+        using var notepad = Process.Start("notepad.exe", $"\"{PhoneSettings.FilePath}\"");
+        if (notepad == null) return;
+        await notepad.WaitForExitAsync();
+        while (_state != UiState.Idle) await Task.Delay(1000);
+
+        Log.Write("Settings file edited; restarting");
+        _confirmedClose = true;
+        App.Restart();
+    }
+
+    void OpenContacts()
+    {
+        var w = new ContactsWindow(_settings);
+        w.Saved += ReloadSpeedDials;
+        ShowHelperWindow(w);
+    }
+
+    void OpenSettings()
+    {
+        var w = new SettingsWindow(_settings);
+        w.Saved += () =>
+        {
+            // Ring device takes effect now; audio devices are used from the next call.
+            if (_state != UiState.Incoming)
+            {
+                _ringer.Dispose();
+                _ringer = new Ringer(SipPhone.FindOutputDevice(_settings.RingDevice));
+            }
+            FlashStatus("✔ Settings saved", ReadyBrush);
+        };
+        ShowHelperWindow(w);
+    }
+
+    async Task CheckForUpdatesInteractiveAsync()
+    {
         if (_state != UiState.Idle) { MessageBox.Show(this, "Please finish the call first.", "Big Phone"); return; }
         SetStatus("Checking for updates…", BusyBrush);
         var info = await Updater.CheckAsync(_settings.UpdateRepo);
