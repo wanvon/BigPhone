@@ -20,6 +20,7 @@ public partial class MainWindow : Window
     static readonly Brush IncomingB = new SolidColorBrush(Color.FromRgb(0x1B, 0x6E, 0x2E));
     static readonly Brush MutedBrush = new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
     static readonly Brush UnmutedBrush = new SolidColorBrush(Color.FromRgb(0x44, 0x44, 0x44));
+    static readonly Brush RecentsBrush = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A));
 
     readonly PhoneSettings _settings;
     readonly SipPhone _phone;
@@ -69,6 +70,7 @@ public partial class MainWindow : Window
         UpdateNumber();
         ShowIdleStatus();
         UpdateButtons();
+        UpdateRecentsBadge();
         _phone.Start();
 
         _updateTimer.Tick += async (_, _) => await UpdateTickAsync(false);
@@ -166,7 +168,8 @@ public partial class MainWindow : Window
         MuteButton.IsEnabled = _state == UiState.InCall;
         MuteText.Text = _phone?.IsMuted == true ? "UNMUTE" : "MUTE";
         MuteButton.Background = _phone?.IsMuted == true ? MutedBrush : UnmutedBrush;
-        SpeedDialList.IsEnabled = idle;
+        ContactsButton.IsEnabled = idle;
+        RecentsButton.IsEnabled = idle;
     }
 
     void UpdateCallClock()
@@ -225,6 +228,7 @@ public partial class MainWindow : Window
         try { _settings.Save(); } catch { }
 
         _state = UiState.Dialing;
+        BeginRecord(false, number, displayName);
         _talkingTo = string.IsNullOrEmpty(displayName) ? FormatNumber(PhoneSettings.DigitsOnly(number).Length > 0 ? number : dial) : displayName;
         SetStatus($"Calling {_talkingTo}…", BusyBrush);
         if (_settings.SpeakStatus) Say($"Calling {_talkingTo}");
@@ -240,6 +244,7 @@ public partial class MainWindow : Window
         IncomingScreen.Visibility = Visibility.Collapsed;
         _state = UiState.InCall;
         _callStart = DateTime.Now;
+        _callConnectedAt = _callStart;
         _number = "";
         UpdateNumber();
         UpdateCallClock();
@@ -249,6 +254,7 @@ public partial class MainWindow : Window
 
     void EndCallUi(string reason)
     {
+        FinishRecord(reason);
         _ringer.Stop();
         _flash.Stop();
         _clock.Stop();
@@ -270,6 +276,7 @@ public partial class MainWindow : Window
         string name = known.Length > 0 ? known : sipName;
         string pretty = FormatNumber(PhoneSettings.DigitsOnly(number).Length > 0 ? PhoneSettings.DigitsOnly(number) : number);
         _talkingTo = name.Length > 0 ? name : pretty;
+        BeginRecord(true, number, name);
         CallerText.Text = name.Length > 0 && name != pretty ? $"{name}\n{pretty}" : pretty;
 
         IncomingScreen.Visibility = Visibility.Visible;
@@ -369,15 +376,88 @@ public partial class MainWindow : Window
         await StartCallAsync(_number, _settings.NameForNumber(_number));
     }
 
-    async void SpeedDial_Click(object sender, RoutedEventArgs e)
+    async void Contacts_Click(object sender, RoutedEventArgs e)
     {
-        if (_state != UiState.Idle || Debounced()) return;
-        if (sender is Button { Tag: SpeedDial sd })
+        if (_state != UiState.Idle) return;
+        var items = _contacts.Select(c => new PickItem
         {
-            _number = sd.Number;
+            Title = c.Name, Detail = FormatNumber(c.Number), Number = c.Number, CallName = c.Name, Background = PickItem.Blue
+        });
+        await PickAndCallAsync("Who do you want to call?", items, "No contacts yet. Your helper can add them with ⚙ → Contacts.");
+    }
+
+    async void Recents_Click(object sender, RoutedEventArgs e)
+    {
+        if (_state != UiState.Idle) return;
+        RecentCalls.MarkSeen();
+        UpdateRecentsBadge();
+        var items = RecentCalls.Calls.Select(r =>
+        {
+            string name = r.Name.Length > 0 ? r.Name : _settings.NameForNumber(r.Number);
+            return new PickItem
+            {
+                Title = name.Length > 0 ? name : FormatNumber(r.Number),
+                Detail = RecentCalls.Describe(r),
+                Number = r.Number,
+                CallName = name,
+                Background = r.Kind is CallKind.Missed or CallKind.Declined ? PickItem.Red
+                           : r.Kind == CallKind.Incoming ? PickItem.Blue : PickItem.Gray,
+            };
+        });
+        await PickAndCallAsync("Recent calls – tap to call back", items, "No calls yet.");
+    }
+
+    /// <summary>Shows the full-screen list; if a row is tapped, calls it.</summary>
+    async Task PickAndCallAsync(string header, IEnumerable<PickItem> items, string empty)
+    {
+        CloseHelperWindow();
+        var w = new PickerWindow(header, items, empty) { Owner = this };
+        _helperWindow = w;   // an incoming call closes it
+        bool? ok = w.ShowDialog();
+        if (_helperWindow == w) _helperWindow = null;
+        if (ok == true && w.Chosen is { } c && _state == UiState.Idle)
+        {
+            _number = c.Number;
             UpdateNumber();
-            await StartCallAsync(sd.Number, sd.Name);
+            await StartCallAsync(c.Number, c.CallName);
         }
+    }
+
+    void UpdateRecentsBadge()
+    {
+        int missed = RecentCalls.UnseenMissed;
+        RecentsText.Text = missed > 0 ? $"{missed} MISSED" : "RECENTS";
+        RecentsButton.Background = missed > 0 ? MutedBrush : RecentsBrush;
+    }
+
+    // ---- call history
+
+    bool _recording;
+    bool _callIncoming;
+    string _callNumber = "", _callName = "";
+    DateTime _callWhen;
+    DateTime? _callConnectedAt;
+
+    void BeginRecord(bool incoming, string number, string name)
+    {
+        _recording = true;
+        _callIncoming = incoming;
+        _callNumber = number;
+        _callName = name;
+        _callWhen = DateTime.Now;
+        _callConnectedAt = null;
+    }
+
+    void FinishRecord(string reason)
+    {
+        if (!_recording) return;
+        _recording = false;
+        var kind = _callIncoming
+            ? (_callConnectedAt != null ? CallKind.Incoming : reason == "Call declined" ? CallKind.Declined : CallKind.Missed)
+            : (_callConnectedAt != null ? CallKind.Outgoing : CallKind.NotConnected);
+        int secs = _callConnectedAt is { } t ? (int)(DateTime.Now - t).TotalSeconds : 0;
+        RecentCalls.Add(new CallRecord { Time = _callWhen, Number = _callNumber, Name = _callName, Kind = kind, Seconds = secs });
+        UpdateRecentsBadge();
     }
 
     void HangUp_Click(object sender, RoutedEventArgs e) => HangUpOrClear();
@@ -396,13 +476,13 @@ public partial class MainWindow : Window
 
     // ================================================================ helper windows (⚙)
 
+    List<SpeedDial> _contacts = new();
+
     void ReloadSpeedDials()
     {
-        var named = _settings.SpeedDials
+        _contacts = _settings.SpeedDials
             .Where(s => !string.IsNullOrWhiteSpace(s.Name) && !string.IsNullOrWhiteSpace(s.Number))
-            .Take(6).ToList();
-        SpeedDialList.ItemsSource = named;
-        SpeedDialColumn.Width = named.Count == 0 ? new GridLength(0) : new GridLength(2, GridUnitType.Star);
+            .ToList();
     }
 
     /// <summary>Helper windows are not modal, so an incoming call can always take over the screen.</summary>
@@ -551,11 +631,11 @@ public partial class MainWindow : Window
                 HangUpOrClear(); break;
             case >= Key.F1 and <= Key.F6:
                 int i = e.Key - Key.F1;
-                if (SpeedDialList.ItemsSource is List<SpeedDial> list && i < list.Count && _state == UiState.Idle && !Debounced())
+                if (i < _contacts.Count && _state == UiState.Idle && !Debounced())
                 {
-                    _number = list[i].Number;
+                    _number = _contacts[i].Number;
                     UpdateNumber();
-                    await StartCallAsync(list[i].Number, list[i].Name);
+                    await StartCallAsync(_contacts[i].Number, _contacts[i].Name);
                 }
                 break;
             default:

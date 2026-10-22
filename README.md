@@ -5,7 +5,8 @@ softphones (like MicroSIP) too small or fiddly. Built for the FlyNumber SIP serv
 works with any standard SIP/UDP provider.
 
 - Huge keypad, **CALL**, **HANG UP** and **MUTE** buttons that fill the screen
-- Up to 6 big **speed-dial** buttons with names ("Mom", "Doctor"…)
+- **CONTACTS**: full-screen scrolling list of big name buttons; tap a name to call
+- **RECENTS**: recent calls with time and length, tap to call back; shows "2 MISSED" in red when calls were missed
 - Incoming calls take over the whole screen, flash, ring loudly, and **say who is calling**
 - Big coloured status bar: green = ready, red = not connected, blue = talking (with call timer)
 - Shaky double-taps are ignored; closing the window asks first
@@ -23,6 +24,8 @@ works with any standard SIP/UDP provider.
 5. Add contacts: ⚙ → **Contacts**.
 6. Optional: start with Windows: press `Win+R`, type `shell:startup`, and put a shortcut to `BigPhone.exe` there.
 
+Call history is kept in `recents.json` (last 100 calls) next to `settings.json`.
+
 Because the zip contains a `BigPhone.portable` file, settings and the log stay next to the exe.
 Delete that file to use `%APPDATA%\BigPhone` instead.
 
@@ -35,7 +38,7 @@ Click the small **⚙** in the top-right corner of the status bar:
 
 | Menu button | What it does |
 |---|---|
-| **Contacts** | Add / edit / delete / reorder speed-dial contacts. The first 6 become big buttons; incoming calls from them show and speak the name. |
+| **Contacts** | Add / edit / delete / reorder contacts shown by the CONTACTS button (first 6 also on F1–F6). Incoming calls from them show and speak the name. |
 | **Settings** | Speaker, microphone and ring device (with ▶ Test), spoken caller name, spoken status, US country code, auto-answer, automatic updates. |
 | **Check for updates** | Looks for a newer version now and offers to install it. |
 | **Advanced (settings file)** | Opens `settings.json` in Notepad; Big Phone restarts when Notepad is closed. |

@@ -13,7 +13,7 @@
 
         <StackPanel>
             <TextBlock Text="Contacts" FontSize="36" FontWeight="Bold"/>
-            <TextBlock Text="The first 6 appear as big buttons on the phone, in this order. Incoming calls from these numbers show the name."
+            <TextBlock Text="These appear, in this order, when the CONTACTS button is pressed. The first 6 can also be called with F1–F6. Incoming calls from these numbers show the name."
                        FontSize="18" Foreground="#BBB" TextWrapping="Wrap" Margin="0,4,0,8"/>
         </StackPanel>
 

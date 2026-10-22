@@ -283,17 +283,33 @@ public sealed class SipPhone : IDisposable
         EndMedia();
         int outIdx = FindOutputDevice(_s.AudioOutputDevice);
         int inIdx = FindInputDevice(_s.AudioInputDevice);
-        Log.Write($"Audio devices: out={outIdx} in={inIdx}");
+        Log.Write("Output devices: " + string.Join(" | ", Enumerable.Range(0, WaveOut.DeviceCount).Select(i => $"{i}={WaveOut.GetCapabilities(i).ProductName}")));
+        Log.Write("Input devices: " + string.Join(" | ", Enumerable.Range(0, WaveIn.DeviceCount).Select(i => $"{i}={WaveIn.GetCapabilities(i).ProductName}")));
+        Log.Write($"Audio devices: out={outIdx} for '{_s.AudioOutputDevice}', in={inIdx} for '{_s.AudioInputDevice}'");
 
         _audio = new WindowsAudioEndPoint(new AudioEncoder(), outIdx, inIdx);
         _audio.RestrictFormats(f => f.Codec == AudioCodecsEnum.PCMU || f.Codec == AudioCodecsEnum.PCMA || f.Codec == AudioCodecsEnum.G722);
         _media = new NatMediaSession(_audio.ToMediaEndPoints(), _publicIp);
         _media.AcceptRtpFromAny = true;
+
+        // Diagnostics: tells "no sound" caused by the network apart from "no sound" caused by the speaker.
+        _rtpReceived = 0;
+        _media.OnAudioFormatsNegotiated += fmts => Log.Write("Audio codec: " + string.Join(", ", fmts.Select(f => f.FormatName)));
+        _media.OnRtpPacketReceived += (ep, kind, pkt) =>
+        {
+            if (Interlocked.Increment(ref _rtpReceived) == 1)
+                Log.Write($"First audio packet received from {ep} (payload type {pkt.Header.PayloadType})");
+        };
+        _media.OnTimeout += kind => Log.Write($"No {kind} packets received for a while");
         IsMuted = false;
     }
 
+    int _rtpReceived;
+
     void EndMedia()
     {
+        if (_media != null)
+            Log.Write($"Call audio: {_rtpReceived} packets received; we sent audio to {_media.AudioDestinationEndPoint}");
         try { _media?.Close("bye"); } catch { }
         try { _audio?.CloseAudio(); } catch { }
         _media = null;
