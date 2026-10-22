@@ -353,6 +353,7 @@ public static class Log
         {
             lock (Lock)
             {
+                Directory.CreateDirectory(PhoneSettings.Folder);
                 var fi = new FileInfo(PhoneSettings.LogPath);
                 if (fi.Exists && fi.Length > 5_000_000) fi.Delete();
                 File.AppendAllText(PhoneSettings.LogPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}  {msg}{Environment.NewLine}");
