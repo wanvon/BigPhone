@@ -1,0 +1,9 @@
+bin/
+obj/
+publish/
+dist/
+*.user
+.vs/
+# never commit real settings (contain the account and encrypted password)
+settings.json
+*.log

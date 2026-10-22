@@ -1,0 +1,487 @@
+using System.Diagnostics;
+using System.Speech.Synthesis;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
+
+namespace BigPhone;
+
+public partial class MainWindow : Window
+{
+    enum UiState { Idle, Dialing, InCall, Incoming }
+
+    static readonly Brush ReadyBrush = new SolidColorBrush(Color.FromRgb(0x1B, 0x6E, 0x2E));
+    static readonly Brush ErrorBrush = new SolidColorBrush(Color.FromRgb(0x7A, 0x1F, 0x1F));
+    static readonly Brush BusyBrush = new SolidColorBrush(Color.FromRgb(0x8A, 0x5A, 0x00));
+    static readonly Brush TalkBrush = new SolidColorBrush(Color.FromRgb(0x0D, 0x3B, 0x66));
+    static readonly Brush IncomingA = new SolidColorBrush(Color.FromRgb(0x0D, 0x3B, 0x66));
+    static readonly Brush IncomingB = new SolidColorBrush(Color.FromRgb(0x1B, 0x6E, 0x2E));
+    static readonly Brush MutedBrush = new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
+    static readonly Brush UnmutedBrush = new SolidColorBrush(Color.FromRgb(0x44, 0x44, 0x44));
+
+    readonly PhoneSettings _settings;
+    readonly SipPhone _phone;
+    readonly Ringer _ringer;
+    readonly SpeechSynthesizer? _voice;
+    readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
+    readonly DispatcherTimer _flash = new() { Interval = TimeSpan.FromMilliseconds(700) };
+    readonly DispatcherTimer _autoAnswer = new();
+    readonly DispatcherTimer _resetStatus = new() { Interval = TimeSpan.FromSeconds(4) };
+    readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromMinutes(10) };
+    readonly DateTime _startedAt = DateTime.Now;
+    DateTime _lastUpdateCheck = DateTime.MinValue;
+
+    UiState _state = UiState.Idle;
+    string _number = "";
+    string _talkingTo = "";
+    DateTime _callStart;
+    DateTime _lastBigAction = DateTime.MinValue;
+    bool _registered;
+    string _regMessage = "Connecting…";
+    bool _confirmedClose;
+
+    public MainWindow(PhoneSettings settings, string password)
+    {
+        InitializeComponent();
+        _settings = settings;
+        Title = $"Big Phone {Updater.CurrentVersionText}";
+
+        var named = _settings.SpeedDials.Where(s => !string.IsNullOrWhiteSpace(s.Name) && !string.IsNullOrWhiteSpace(s.Number)).Take(6).ToList();
+        SpeedDialList.ItemsSource = named;
+        if (named.Count == 0) SpeedDialColumn.Width = new GridLength(0);
+
+        _ringer = new Ringer(SipPhone.FindOutputDevice(_settings.RingDevice));
+        try { _voice = new SpeechSynthesizer { Volume = 100, Rate = -1 }; } catch { _voice = null; }
+
+        _clock.Tick += (_, _) => UpdateCallClock();
+        _flash.Tick += (_, _) => IncomingScreen.Background = IncomingScreen.Background == IncomingA ? IncomingB : IncomingA;
+        _autoAnswer.Tick += (_, _) => { _autoAnswer.Stop(); if (_state == UiState.Incoming) _ = AnswerAsync(); };
+        _resetStatus.Tick += (_, _) => { _resetStatus.Stop(); if (_state == UiState.Idle) ShowIdleStatus(); };
+
+        _phone = new SipPhone(_settings, password);
+        _phone.RegistrationChanged += (ok, msg) => Ui(() => { _registered = ok; _regMessage = msg; if (_state == UiState.Idle && !_resetStatus.IsEnabled) ShowIdleStatus(); });
+        _phone.IncomingCall += (num, name) => Ui(() => OnIncoming(num, name));
+        _phone.IncomingCancelled += () => Ui(() => { if (_state == UiState.Incoming) EndCallUi("Missed call"); });
+        _phone.CallProgress += msg => Ui(() => { if (_state == UiState.Dialing) SetStatus($"{msg}  {_talkingTo}", BusyBrush); });
+        _phone.CallAnswered += () => Ui(OnCallConnected);
+        _phone.CallEnded += reason => Ui(() => { if (_state != UiState.Idle) EndCallUi(reason); });
+
+        UpdateNumber();
+        ShowIdleStatus();
+        UpdateButtons();
+        _phone.Start();
+
+        _updateTimer.Tick += async (_, _) => await UpdateTickAsync(false);
+        _updateTimer.Start();
+        Loaded += async (_, _) => await UpdateTickAsync(false);
+    }
+
+    // ================================================================ updates
+
+    /// <summary>
+    /// Checks GitHub once a day and downloads new versions in the background. A downloaded update is installed
+    /// (app restarts in ~2 s) only when the phone is idle AND either the app just started or it is 2-5 AM.
+    /// </summary>
+    async Task UpdateTickAsync(bool userAsked)
+    {
+        if (!_settings.AutoUpdate && !userAsked) return;
+        if (userAsked || (DateTime.Now - _lastUpdateCheck).TotalHours >= 24)
+        {
+            _lastUpdateCheck = DateTime.Now;
+            var info = await Updater.CheckAsync(_settings.UpdateRepo);
+            if (info != null) await Updater.DownloadAsync(_settings.UpdateRepo, info);
+        }
+
+        if (Updater.StagedVersion() == null || _state != UiState.Idle) return;
+        bool justStarted = (DateTime.Now - _startedAt).TotalMinutes < 2;
+        bool night = DateTime.Now.Hour is >= 2 and < 5;
+        if (userAsked || justStarted || night) InstallUpdateNow();
+    }
+
+    void InstallUpdateNow()
+    {
+        if (_state != UiState.Idle) return;
+        SetStatus("Updating… one moment", BusyBrush);
+        _phone.Dispose();
+        _ringer.Dispose();
+        if (!Updater.ApplyStagedAndRestart())
+        {
+            // couldn't update: restart normally so the phone keeps working
+            Process.Start(new ProcessStartInfo(Environment.ProcessPath!, "--after-update") { UseShellExecute = false });
+        }
+        _confirmedClose = true;
+        Application.Current.Shutdown();
+    }
+
+    static void Ui(Action a) => Application.Current?.Dispatcher.BeginInvoke(a);
+
+    // ================================================================ status
+
+    void SetStatus(string text, Brush bg)
+    {
+        StatusText.Text = text;
+        StatusBar.Background = bg;
+    }
+
+    void ShowIdleStatus()
+    {
+        if (_registered) SetStatus("✔ Ready to call", ReadyBrush);
+        else SetStatus("✖ " + _regMessage, ErrorBrush);
+    }
+
+    void FlashStatus(string text, Brush bg)
+    {
+        SetStatus(text, bg);
+        _resetStatus.Stop();
+        _resetStatus.Start();
+    }
+
+    void Say(string text)
+    {
+        try { _voice?.SpeakAsyncCancelAll(); _voice?.SpeakAsync(text); } catch { }
+    }
+
+    void UpdateNumber()
+    {
+        NumberText.Text = FormatNumber(_number);
+        NumberHint.Visibility = _number.Length == 0 && _state == UiState.Idle ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    static string FormatNumber(string n)
+    {
+        string d = PhoneSettings.DigitsOnly(n);
+        if (d != n) return n;   // has * # or + : show as typed
+        if (d.Length == 10) return $"{d[..3]} {d[3..6]} {d[6..]}";
+        if (d.Length == 11 && d[0] == '1') return $"1 {d[1..4]} {d[4..7]} {d[7..]}";
+        return n;
+    }
+
+    void UpdateButtons()
+    {
+        bool idle = _state == UiState.Idle;
+        CallButton.IsEnabled = idle;
+        CallButtonText.Text = idle && _number.Length == 0 && _settings.LastNumber.Length > 0 ? "↻ REDIAL" : "📞 CALL";
+        HangUpText.Text = idle ? "CLEAR" : "HANG UP";
+        HangUpButton.Background = idle ? UnmutedBrush : MutedBrush;
+        MuteButton.IsEnabled = _state == UiState.InCall;
+        MuteText.Text = _phone?.IsMuted == true ? "UNMUTE" : "MUTE";
+        MuteButton.Background = _phone?.IsMuted == true ? MutedBrush : UnmutedBrush;
+        SpeedDialList.IsEnabled = idle;
+    }
+
+    void UpdateCallClock()
+    {
+        if (_state != UiState.InCall) return;
+        var t = DateTime.Now - _callStart;
+        string muted = _phone.IsMuted ? "   (MUTED)" : "";
+        SetStatus($"Talking to {_talkingTo}   {t:mm\\:ss}{muted}", TalkBrush);
+    }
+
+    // Guards against shaky double-taps starting two actions.
+    bool Debounced()
+    {
+        if ((DateTime.Now - _lastBigAction).TotalMilliseconds < 1200) return true;
+        _lastBigAction = DateTime.Now;
+        return false;
+    }
+
+    // ================================================================ actions
+
+    void PressKey(char k)
+    {
+        if (_state == UiState.Incoming || _state == UiState.Dialing) return;
+        if (_number.Length >= 24) return;
+        _number += k;
+        UpdateNumber();
+        UpdateButtons();
+        if (_state == UiState.InCall) _ = _phone.SendDtmfAsync(k);
+    }
+
+    void Backspace()
+    {
+        if (_state != UiState.Idle || _number.Length == 0) return;
+        _number = _number[..^1];
+        UpdateNumber();
+        UpdateButtons();
+    }
+
+    async Task StartCallAsync(string number, string displayName)
+    {
+        string dial = _settings.NormalizeForDialing(number);
+        if (dial.Length < 3)
+        {
+            FlashStatus("Type a number first", ErrorBrush);
+            Say("Type a number first");
+            return;
+        }
+        if (!_registered)
+        {
+            FlashStatus("Phone is not connected", ErrorBrush);
+            Say("The phone is not connected");
+            return;
+        }
+
+        _settings.LastNumber = number;
+        try { _settings.Save(); } catch { }
+
+        _state = UiState.Dialing;
+        _talkingTo = string.IsNullOrEmpty(displayName) ? FormatNumber(PhoneSettings.DigitsOnly(number).Length > 0 ? number : dial) : displayName;
+        SetStatus($"Calling {_talkingTo}…", BusyBrush);
+        if (_settings.SpeakStatus) Say($"Calling {_talkingTo}");
+        UpdateButtons();
+        await _phone.CallAsync(dial);
+    }
+
+    void OnCallConnected()
+    {
+        _ringer.Stop();
+        _flash.Stop();
+        _autoAnswer.Stop();
+        IncomingScreen.Visibility = Visibility.Collapsed;
+        _state = UiState.InCall;
+        _callStart = DateTime.Now;
+        _number = "";
+        UpdateNumber();
+        UpdateCallClock();
+        _clock.Start();
+        UpdateButtons();
+    }
+
+    void EndCallUi(string reason)
+    {
+        _ringer.Stop();
+        _flash.Stop();
+        _clock.Stop();
+        _autoAnswer.Stop();
+        IncomingScreen.Visibility = Visibility.Collapsed;
+        _state = UiState.Idle;
+        _number = "";
+        UpdateNumber();
+        UpdateButtons();
+        FlashStatus(reason, reason == "Call ended" ? BusyBrush : ErrorBrush);
+        if (_settings.SpeakStatus) Say(reason);
+    }
+
+    void OnIncoming(string number, string sipName)
+    {
+        _state = UiState.Incoming;
+        string known = _settings.NameForNumber(number);
+        string name = known.Length > 0 ? known : sipName;
+        string pretty = FormatNumber(PhoneSettings.DigitsOnly(number).Length > 0 ? PhoneSettings.DigitsOnly(number) : number);
+        _talkingTo = name.Length > 0 ? name : pretty;
+        CallerText.Text = name.Length > 0 && name != pretty ? $"{name}\n{pretty}" : pretty;
+
+        IncomingScreen.Visibility = Visibility.Visible;
+        _flash.Start();
+        UpdateButtons();
+
+        // Bring the window to the front even if minimized or behind other windows.
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Maximized;
+        Show();
+        Activate();
+        Topmost = true;
+        Topmost = false;
+
+        if (_settings.SpeakCallerName)
+        {
+            Say($"Call from {(name.Length > 0 ? name : SpellDigits(number))}");
+            // start ringing after the announcement
+            var delay = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
+            delay.Tick += (_, _) => { delay.Stop(); if (_state == UiState.Incoming) _ringer.Start(); };
+            delay.Start();
+        }
+        else
+        {
+            _ringer.Start();
+        }
+
+        if (_settings.AutoAnswerSeconds > 0)
+        {
+            _autoAnswer.Interval = TimeSpan.FromSeconds(_settings.AutoAnswerSeconds);
+            _autoAnswer.Start();
+        }
+    }
+
+    static string SpellDigits(string n)
+    {
+        string d = PhoneSettings.DigitsOnly(n);
+        if (d.Length == 11 && d[0] == '1') d = d[1..];
+        return d.Length == 0 ? "unknown number" : string.Join(" ", d.ToCharArray());
+    }
+
+    async Task AnswerAsync()
+    {
+        if (_state != UiState.Incoming) return;
+        _ringer.Stop();
+        _voice?.SpeakAsyncCancelAll();
+        _flash.Stop();
+        SetStatus("Connecting…", BusyBrush);
+        await _phone.AnswerAsync();
+    }
+
+    void Decline()
+    {
+        if (_state != UiState.Incoming) return;
+        _phone.Decline();
+        EndCallUi("Call declined");
+    }
+
+    void HangUpOrClear()
+    {
+        switch (_state)
+        {
+            case UiState.Idle:
+                _number = "";
+                UpdateNumber();
+                UpdateButtons();
+                break;
+            case UiState.Incoming:
+                Decline();
+                break;
+            default:
+                _phone.HangUp();
+                EndCallUi("Call ended");
+                break;
+        }
+    }
+
+    // ================================================================ event handlers
+
+    void Key_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string t } && t.Length == 1) PressKey(t[0]);
+    }
+
+    void Backspace_Click(object sender, RoutedEventArgs e) => Backspace();
+
+    async void Call_Click(object sender, RoutedEventArgs e)
+    {
+        if (_state != UiState.Idle || Debounced()) return;
+        if (_number.Length == 0 && _settings.LastNumber.Length > 0)
+        {
+            // first press shows the last number, second press calls it
+            _number = _settings.LastNumber;
+            UpdateNumber();
+            UpdateButtons();
+            return;
+        }
+        await StartCallAsync(_number, _settings.NameForNumber(_number));
+    }
+
+    async void SpeedDial_Click(object sender, RoutedEventArgs e)
+    {
+        if (_state != UiState.Idle || Debounced()) return;
+        if (sender is Button { Tag: SpeedDial sd })
+        {
+            _number = sd.Number;
+            UpdateNumber();
+            await StartCallAsync(sd.Number, sd.Name);
+        }
+    }
+
+    void HangUp_Click(object sender, RoutedEventArgs e) => HangUpOrClear();
+
+    void Mute_Click(object sender, RoutedEventArgs e)
+    {
+        if (_state != UiState.InCall) return;
+        _phone.SetMute(!_phone.IsMuted);
+        UpdateButtons();
+        UpdateCallClock();
+    }
+
+    async void Answer_Click(object sender, RoutedEventArgs e) => await AnswerAsync();
+
+    void Decline_Click(object sender, RoutedEventArgs e) => Decline();
+
+    async void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        string mode = PhoneSettings.IsPortable ? "Portable (settings next to BigPhone.exe)" : "Installed (settings in AppData)";
+        var r = MessageBox.Show(this,
+            $"Big Phone version {Updater.CurrentVersionText}\n{mode}\n\nSettings: {PhoneSettings.FilePath}\nLog: {PhoneSettings.LogPath}\n\n" +
+            "YES = open the settings file (restart Big Phone after saving)\n" +
+            "NO = check for updates now\n" +
+            "CANCEL = close this box",
+            "Big Phone settings", MessageBoxButton.YesNoCancel, MessageBoxImage.Information, MessageBoxResult.Cancel);
+        if (r == MessageBoxResult.Yes)
+        {
+            Process.Start(new ProcessStartInfo("notepad.exe", $"\"{PhoneSettings.FilePath}\"") { UseShellExecute = true });
+            return;
+        }
+        if (r != MessageBoxResult.No) return;
+
+        if (_state != UiState.Idle) { MessageBox.Show(this, "Please finish the call first.", "Big Phone"); return; }
+        SetStatus("Checking for updates…", BusyBrush);
+        var info = await Updater.CheckAsync(_settings.UpdateRepo);
+        if (info != null && !await Updater.DownloadAsync(_settings.UpdateRepo, info))
+        {
+            ShowIdleStatus();
+            MessageBox.Show(this, "The update could not be downloaded. See the log for details.", "Big Phone");
+            return;
+        }
+        var staged = Updater.StagedVersion();
+        if (staged == null)
+        {
+            ShowIdleStatus();
+            MessageBox.Show(this, $"Big Phone {Updater.CurrentVersionText} is the newest version.", "Big Phone");
+            return;
+        }
+        if (MessageBox.Show(this, $"Install version {staged} now? Big Phone will restart.", "Big Phone",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            InstallUpdateNow();
+        else
+            ShowIdleStatus();
+    }
+
+    async void Window_KeyDown(object sender, KeyEventArgs e)
+    {
+        bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+        switch (e.Key)
+        {
+            case >= Key.D0 and <= Key.D9 when !shift:
+                PressKey((char)('0' + (e.Key - Key.D0))); break;
+            case >= Key.NumPad0 and <= Key.NumPad9:
+                PressKey((char)('0' + (e.Key - Key.NumPad0))); break;
+            case Key.D8 when shift:
+            case Key.Multiply:
+                PressKey('*'); break;
+            case Key.D3 when shift:
+                PressKey('#'); break;
+            case Key.Back:
+                Backspace(); break;
+            case Key.Enter:
+                if (_state == UiState.Incoming) await AnswerAsync();
+                else if (_state == UiState.Idle) Call_Click(this, new RoutedEventArgs());
+                break;
+            case Key.Escape:
+                HangUpOrClear(); break;
+            case >= Key.F1 and <= Key.F6:
+                int i = e.Key - Key.F1;
+                if (SpeedDialList.ItemsSource is List<SpeedDial> list && i < list.Count && _state == UiState.Idle && !Debounced())
+                {
+                    _number = list[i].Number;
+                    UpdateNumber();
+                    await StartCallAsync(list[i].Number, list[i].Name);
+                }
+                break;
+            default:
+                return;
+        }
+        e.Handled = true;
+    }
+
+    void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (!_confirmedClose)
+        {
+            var r = MessageBox.Show(this, "Turn the phone off?\n\nYou will NOT get calls while it is off.",
+                "Big Phone", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+            if (r != MessageBoxResult.Yes) { e.Cancel = true; return; }
+            _confirmedClose = true;
+        }
+        _ringer.Dispose();
+        _voice?.Dispose();
+        _phone.Dispose();
+    }
+}

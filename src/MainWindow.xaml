@@ -1,0 +1,182 @@
+<Window x:Class="BigPhone.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Big Phone" Width="1100" Height="850" MinWidth="700" MinHeight="600"
+        WindowState="Maximized" Background="#101010"
+        FontFamily="Segoe UI" Foreground="White"
+        KeyDown="Window_KeyDown" Closing="Window_Closing">
+
+    <Window.Resources>
+        <!-- One big, high-contrast button style. Text scales with the button size. -->
+        <Style x:Key="Big" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#2E2E2E"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="20"
+                                BorderBrush="#5A5A5A" BorderThickness="4">
+                            <Viewbox Margin="14,10" StretchDirection="Both">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Viewbox>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FFD600"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.65"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.25"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Key" TargetType="Button" BasedOn="{StaticResource Big}">
+            <EventSetter Event="Click" Handler="Key_Click"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <!-- ========================= NORMAL SCREEN ========================= -->
+        <Grid x:Name="MainScreen" Margin="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="1.1*"/>
+                <RowDefinition Height="1.1*"/>
+                <RowDefinition Height="4.6*"/>
+                <RowDefinition Height="1.7*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Status banner -->
+            <Border x:Name="StatusBar" Grid.Row="0" Background="#7A1F1F" CornerRadius="16" Margin="8">
+                <Grid>
+                    <Viewbox Margin="20,6" StretchDirection="DownOnly">
+                        <TextBlock x:Name="StatusText" Text="Starting…" FontSize="72" FontWeight="Bold"/>
+                    </Viewbox>
+                    <Button x:Name="SettingsButton" Content="⚙" ToolTip="Settings (for the helper)"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
+                            Width="40" Height="40" FontSize="22" Focusable="False"
+                            Background="Transparent" Foreground="#AAFFFFFF" BorderThickness="0"
+                            Click="Settings_Click"/>
+                </Grid>
+            </Border>
+
+            <!-- Number display + backspace -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Background="White" CornerRadius="16" Margin="8">
+                    <Viewbox Margin="20,4" StretchDirection="DownOnly" HorizontalAlignment="Center">
+                        <TextBlock x:Name="NumberText" Text="" FontSize="96" FontWeight="Bold"
+                                   Foreground="Black" FontFamily="Consolas"/>
+                    </Viewbox>
+                </Border>
+                <TextBlock x:Name="NumberHint" Text="Type a number or pick a person"
+                           Foreground="#777" FontSize="36" IsHitTestVisible="False"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Style="{StaticResource Big}" Width="200" Background="#5A4A00"
+                        Click="Backspace_Click" ToolTip="Erase last digit">
+                    <TextBlock Text="⌫ ERASE"/>
+                </Button>
+            </Grid>
+
+            <!-- Keypad + speed dial -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition x:Name="SpeedDialColumn" Width="2*"/>
+                </Grid.ColumnDefinitions>
+
+                <UniformGrid Rows="4" Columns="3">
+                    <Button Style="{StaticResource Key}" Tag="1"><TextBlock Text="1"/></Button>
+                    <Button Style="{StaticResource Key}" Tag="2"><TextBlock Text="2"/></Button>
+                    <Button Style="{StaticResource Key}" Tag="3"><TextBlock Text="3"/></Button>
+                    <Button Style="{StaticResource Key}" Tag="4"><TextBlock Text="4"/></Button>
+                    <Button Style="{StaticResource Key}" Tag="5"><TextBlock Text="5"/></Button>
+                    <Button Style="{StaticResource Key}" Tag="6"><TextBlock Text="6"/></Button>
+                    <Button Style="{StaticResource Key}" Tag="7"><TextBlock Text="7"/></Button>
+                    <Button Style="{StaticResource Key}" Tag="8"><TextBlock Text="8"/></Button>
+                    <Button Style="{StaticResource Key}" Tag="9"><TextBlock Text="9"/></Button>
+                    <Button Style="{StaticResource Key}" Tag="*"><TextBlock Text="✱"/></Button>
+                    <Button Style="{StaticResource Key}" Tag="0"><TextBlock Text="0"/></Button>
+                    <Button Style="{StaticResource Key}" Tag="#"><TextBlock Text="#"/></Button>
+                </UniformGrid>
+
+                <ItemsControl x:Name="SpeedDialList" Grid.Column="1">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="1"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource Big}" Background="#1E4C9A"
+                                    Click="SpeedDial_Click" Tag="{Binding}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Number}" FontSize="9" FontWeight="Normal"
+                                               Foreground="#CCDDFF" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+
+            <!-- Call / Hang up / Mute -->
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <Button x:Name="CallButton" Style="{StaticResource Big}" Background="#1B8E3A" Click="Call_Click">
+                    <TextBlock x:Name="CallButtonText" Text="📞 CALL"/>
+                </Button>
+                <Button x:Name="HangUpButton" Grid.Column="1" Style="{StaticResource Big}" Background="#C62828" Click="HangUp_Click">
+                    <TextBlock x:Name="HangUpText" Text="HANG UP"/>
+                </Button>
+                <Button x:Name="MuteButton" Grid.Column="2" Style="{StaticResource Big}" Background="#444" Click="Mute_Click">
+                    <TextBlock x:Name="MuteText" Text="MUTE"/>
+                </Button>
+            </Grid>
+        </Grid>
+
+        <!-- ========================= INCOMING CALL SCREEN ========================= -->
+        <Grid x:Name="IncomingScreen" Visibility="Collapsed" Background="#0D3B66">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1.6*"/>
+                <RowDefinition Height="3*"/>
+            </Grid.RowDefinitions>
+            <Viewbox Margin="40,20" StretchDirection="DownOnly">
+                <TextBlock Text="📞 SOMEONE IS CALLING" FontSize="80" FontWeight="Bold" Foreground="#FFD600"/>
+            </Viewbox>
+            <Viewbox Grid.Row="1" Margin="40,0">
+                <TextBlock x:Name="CallerText" Text="" FontWeight="Bold" TextAlignment="Center"/>
+            </Viewbox>
+            <Grid Grid.Row="2" Margin="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="2*"/>
+                </Grid.ColumnDefinitions>
+                <Button Style="{StaticResource Big}" Background="#1B8E3A" Click="Answer_Click">
+                    <TextBlock Text="ANSWER"/>
+                </Button>
+                <Button Grid.Column="1" Style="{StaticResource Big}" Background="#C62828" Click="Decline_Click">
+                    <TextBlock Text="NO"/>
+                </Button>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

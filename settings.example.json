@@ -1,0 +1,21 @@
+{
+  "Server": "sip.flynumber.com",
+  "Domain": "sip.flynumber.com",
+  "Username": "YOUR_SIP_USERNAME",
+  "AuthId": "YOUR_SIP_USERNAME",
+  "DisplayName": "Your Name",
+  "Password": "type it here once - it is encrypted and removed on next start",
+  "AudioOutputDevice": "",
+  "AudioInputDevice": "",
+  "RingDevice": "",
+  "AddUSCountryCode": true,
+  "SpeakCallerName": true,
+  "SpeakStatus": false,
+  "AutoAnswerSeconds": 0,
+  "AutoUpdate": true,
+  "UpdateRepo": "wanvon/BigPhone",
+  "SpeedDials": [
+    { "Name": "Mom", "Number": "9415551234" },
+    { "Name": "Doctor", "Number": "9415559876" }
+  ]
+}
