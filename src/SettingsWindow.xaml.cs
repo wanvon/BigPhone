@@ -46,10 +46,11 @@ public partial class SettingsWindow : Window
         ImapUserBox.Text = settings.ImapUser;
         ImapHostBox.Text = settings.ImapHost;
         foreach (var p in Providers) ProviderBox.Items.Add(p.Name);
-        ProviderBox.SelectedIndex = Math.Max(0, Array.FindIndex(Providers, p => p.Host == settings.ImapHost));
-        if (Array.FindIndex(Providers, p => p.Host == settings.ImapHost) < 0 && settings.ImapHost.Length > 0)
-            ProviderBox.SelectedIndex = Providers.Length - 1;   // "Other"
+        int idx = settings.ImapAuth == "google" ? 0 : Array.FindIndex(Providers, p => !p.Google && p.Host == settings.ImapHost);
+        if (idx < 0) idx = settings.ImapHost.Length > 0 ? Providers.Length - 1 : 0;   // unknown host = "Other"
+        ProviderBox.SelectedIndex = idx;
         ImapHostBox.Text = settings.ImapHost;
+        UpdateGoogleStatus();
         if (settings.ImapPasswordProtected.Length > 0)
             ImapPasswordLabel.Text = "App password (saved – leave empty to keep it)";
 
@@ -57,12 +58,17 @@ public partial class SettingsWindow : Window
                         $"Account and network settings: ⚙ → Advanced (settings file).";
     }
 
-    record Provider(string Name, string Host, string Help, string Url = "");
+    record Provider(string Name, string Host, string Help, string Url = "", bool Google = false);
 
     const string Tip = " Tip: use a separate mailbox just for Big Phone (set up with the helper's phone), so the user never has to sign in to it.";
 
     static readonly Provider[] Providers =
     {
+        new("Gmail – Sign in with Google (no app password)", "imap.gmail.com",
+            "For Gmail accounts that can't make app passwords (e.g. accounts using passkeys). Needs a one-time " +
+            "\"Desktop app\" OAuth client from your own Google Cloud project, with the Gmail scope on its consent screen " +
+            "and publishing status \"In production\". See the README for step-by-step instructions.",
+            "https://console.cloud.google.com/auth/clients", Google: true),
         new("Gmail", "imap.gmail.com",
             "Gmail: turn on 2-Step Verification, then create an app password and paste it here." + Tip,
             "https://myaccount.google.com/apppasswords"),
@@ -98,9 +104,69 @@ public partial class SettingsWindow : Window
             };
             ProviderHelp.Inlines.Add(link);
         }
+        PasswordPanel.Visibility = p.Google ? Visibility.Collapsed : Visibility.Visible;
+        GooglePanel.Visibility = p.Google ? Visibility.Visible : Visibility.Collapsed;
         bool other = p.Host.Length == 0;
         ImapHostBox.IsEnabled = other;
         if (!other) ImapHostBox.Text = p.Host;
+    }
+
+    bool GoogleSelected => ProviderBox.SelectedIndex >= 0 && Providers[ProviderBox.SelectedIndex].Google;
+
+    void UpdateGoogleStatus()
+    {
+        GoogleClientStatus.Text = GoogleSignIn.HasClient(_settings) ? "✔ App ID loaded" : "No app ID yet";
+        GoogleSignInStatus.Text = GoogleSignIn.IsSignedIn && _settings.ImapAuth == "google" && _settings.ImapUser.Length > 0
+            ? $"✔ Signed in as {_settings.ImapUser}" : "Not signed in";
+        GoogleSignInButton.IsEnabled = GoogleSignIn.HasClient(_settings);
+    }
+
+    void ChooseGoogleClient_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Choose the client_secret_….json file downloaded from Google Cloud Console",
+            Filter = "Google client file (*.json)|*.json",
+            InitialDirectory = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        try
+        {
+            var (id, secret) = GoogleSignIn.ReadClientFile(dlg.FileName);
+            _settings.GoogleClientId = id;
+            _settings.SetGoogleClientSecret(secret);
+            _settings.Save();
+            Log.Write("Google app ID loaded");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Big Phone");
+        }
+        UpdateGoogleStatus();
+    }
+
+    async void GoogleSignIn_Click(object sender, RoutedEventArgs e)
+    {
+        GoogleSignInStatus.Text = "Finish signing in in your web browser…";
+        GoogleSignInButton.IsEnabled = false;
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+            string email = await GoogleSignIn.SignInAsync(_settings, cts.Token);
+            if (email.Length == 0) throw new InvalidOperationException("Google didn't say which account was used.");
+            _settings.ImapAuth = "google";
+            _settings.ImapUser = email;
+            _settings.ImapHost = "imap.gmail.com";
+            _settings.Save();
+            Activate();
+        }
+        catch (Exception ex)
+        {
+            GoogleSignInStatus.Text = "✖ " + ex.Message;
+            GoogleSignInButton.IsEnabled = true;
+            return;
+        }
+        UpdateGoogleStatus();
     }
 
     string ImapPasswordToUse() =>
@@ -112,7 +178,9 @@ public partial class SettingsWindow : Window
         ImapTestResult.Text = "Connecting…";
         try
         {
-            ImapTestResult.Text = await TextWatcher.TestAsync(ImapHostBox.Text.Trim(), _settings.ImapPort, ImapUserBox.Text.Trim(), ImapPasswordToUse());
+            ImapTestResult.Text = GoogleSelected
+                ? await TextWatcher.TestAsync(_settings, true, "imap.gmail.com", _settings.ImapPort, _settings.ImapUser, "")
+                : await TextWatcher.TestAsync(_settings, false, ImapHostBox.Text.Trim(), _settings.ImapPort, ImapUserBox.Text.Trim(), ImapPasswordToUse());
             ImapTestResult.Foreground = System.Windows.Media.Brushes.LightGreen;
         }
         catch (Exception ex)
@@ -171,8 +239,17 @@ public partial class SettingsWindow : Window
         _settings.TextsEnabled = TextsEnabledBox.IsChecked == true;
         _settings.PopUpNewTexts = PopUpTextsBox.IsChecked == true;
         _settings.SpeakNewTexts = SpeakTextsBox.IsChecked == true;
-        _settings.ImapHost = ImapHostBox.Text.Trim();
-        _settings.ImapUser = ImapUserBox.Text.Trim();
+        if (GoogleSelected)
+        {
+            _settings.ImapAuth = "google";
+            _settings.ImapHost = "imap.gmail.com";   // ImapUser was set by Sign in with Google
+        }
+        else
+        {
+            _settings.ImapAuth = "password";
+            _settings.ImapHost = ImapHostBox.Text.Trim();
+            _settings.ImapUser = ImapUserBox.Text.Trim();
+        }
         if (ImapPasswordBox.Password.Length > 0) _settings.SetImapPassword(ImapPasswordBox.Password.Replace(" ", ""));   // Google shows app passwords with spaces
         try { _settings.Save(); }
         catch (Exception ex) { MessageBox.Show(this, $"Could not save settings:\n{ex.Message}", "Big Phone"); return; }

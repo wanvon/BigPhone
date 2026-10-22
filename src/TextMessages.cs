@@ -172,12 +172,21 @@ public sealed class TextWatcher : IDisposable
         finally { Interlocked.Exchange(ref _busy, 0); }
     }
 
+    /// <summary>App password, or Sign in with Google (OAuth2 / XOAUTH2) for Gmail accounts without app passwords.</summary>
+    static async Task LoginAsync(ImapClient client, PhoneSettings s, bool google, string user, string password)
+    {
+        if (google)
+            await client.AuthenticateAsync(new SaslMechanismOAuth2(user, await GoogleSignIn.GetAccessTokenAsync(s)));
+        else
+            await client.AuthenticateAsync(user, password);
+    }
+
     /// <summary>Connects, logs in and counts FlyNumber text emails. Used by the Settings "Test" button.</summary>
-    public static async Task<string> TestAsync(string host, int port, string user, string password)
+    public static async Task<string> TestAsync(PhoneSettings s, bool google, string host, int port, string user, string password)
     {
         using var client = new ImapClient { Timeout = 20000 };
         await client.ConnectAsync(host, port, SecureSocketOptions.Auto);
-        await client.AuthenticateAsync(user, password);
+        await LoginAsync(client, s, google, user, password);
         await client.Inbox.OpenAsync(FolderAccess.ReadOnly);
         var ids = await client.Inbox.SearchAsync(SearchQuery.FromContains(FlyNumberSender));
         await client.DisconnectAsync(true);
@@ -189,7 +198,7 @@ public sealed class TextWatcher : IDisposable
         var result = new List<TextMessage>();
         using var client = new ImapClient { Timeout = 20000 };
         await client.ConnectAsync(s.ImapHost, s.ImapPort, SecureSocketOptions.Auto);
-        await client.AuthenticateAsync(s.ImapUser, password);
+        await LoginAsync(client, s, s.ImapAuth == "google", s.ImapUser, password);
         var inbox = client.Inbox;
         await inbox.OpenAsync(FolderAccess.ReadOnly);
 

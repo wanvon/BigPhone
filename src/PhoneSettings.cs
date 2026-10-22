@@ -58,6 +58,9 @@ public class PhoneSettings
     public int ImapPort { get; set; } = 993;
     public string ImapUser { get; set; } = "";
     public string ImapPasswordProtected { get; set; } = "";
+    public string ImapAuth { get; set; } = "password";      // "password" (app password) or "google" (Sign in with Google)
+    public string GoogleClientId { get; set; } = "";         // from the helper's own Google Cloud "Desktop app" client
+    public string GoogleClientSecretProtected { get; set; } = "";
     public int TextsPollSeconds { get; set; } = 20;
     public bool PopUpNewTexts { get; set; } = true;          // open new texts full screen when not on a call
     public bool SpeakNewTexts { get; set; } = true;          // "New text from 12345. The code is 4 8 2 9 1 3"
@@ -127,10 +130,13 @@ public class PhoneSettings
     public string GetImapPassword() => Unprotect(ImapPasswordProtected);
     public void SetImapPassword(string plain) => ImapPasswordProtected = Protect(plain);
 
-    static string Protect(string plain) =>
+    public string GetGoogleClientSecret() => Unprotect(GoogleClientSecretProtected);
+    public void SetGoogleClientSecret(string plain) => GoogleClientSecretProtected = Protect(plain);
+
+    public static string Protect(string plain) =>
         Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(plain), null, DataProtectionScope.CurrentUser));
 
-    static string Unprotect(string protectedText)
+    public static string Unprotect(string protectedText)
     {
         if (string.IsNullOrEmpty(protectedText)) return "";
         try

@@ -61,11 +61,33 @@
                 <ComboBox x:Name="ProviderBox" Style="{StaticResource DlgCombo}" SelectionChanged="Provider_Changed"/>
                 <TextBlock Text="Email server (IMAP)" Style="{StaticResource DlgLabel}"/>
                 <TextBox x:Name="ImapHostBox" Style="{StaticResource DlgText}" FontSize="24"/>
-                <TextBlock Text="Email address" Style="{StaticResource DlgLabel}"/>
-                <TextBox x:Name="ImapUserBox" Style="{StaticResource DlgText}" FontSize="24"/>
-                <TextBlock x:Name="ImapPasswordLabel" Text="App password" Style="{StaticResource DlgLabel}"/>
-                <PasswordBox x:Name="ImapPasswordBox" FontSize="24" Padding="8,4" Margin="6,0,6,6"/>
+                <StackPanel x:Name="PasswordPanel">
+                    <TextBlock Text="Email address" Style="{StaticResource DlgLabel}"/>
+                    <TextBox x:Name="ImapUserBox" Style="{StaticResource DlgText}" FontSize="24"/>
+                    <TextBlock x:Name="ImapPasswordLabel" Text="App password" Style="{StaticResource DlgLabel}"/>
+                    <PasswordBox x:Name="ImapPasswordBox" FontSize="24" Padding="8,4" Margin="6,0,6,6"/>
+                </StackPanel>
                 <TextBlock x:Name="ProviderHelp" FontSize="16" Foreground="#AAA" TextWrapping="Wrap" Margin="6,0,6,6"/>
+                <StackPanel x:Name="GooglePanel" Visibility="Collapsed">
+                    <TextBlock Text="1. Google app ID (the JSON file downloaded from Google Cloud Console)" Style="{StaticResource DlgLabel}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="📂 Choose file…" Style="{StaticResource DlgButton}" Click="ChooseGoogleClient_Click"/>
+                        <TextBlock x:Name="GoogleClientStatus" Grid.Column="1" FontSize="18" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0"/>
+                    </Grid>
+                    <TextBlock Text="2. Sign in and pick your account from Google's list" Style="{StaticResource DlgLabel}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="GoogleSignInButton" Content="Sign in with Google" Style="{StaticResource DlgButton}" Background="#1E4C9A" Click="GoogleSignIn_Click"/>
+                        <TextBlock x:Name="GoogleSignInStatus" Grid.Column="1" FontSize="18" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0"/>
+                    </Grid>
+                </StackPanel>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>

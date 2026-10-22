@@ -3,6 +3,13 @@
 All notable changes to Big Phone. Versions follow `MAJOR.MINOR.PATCH`;
 each release is tagged `vX.Y.Z` on GitHub and installed copies update themselves.
 
+## 1.2.0 - 2026-10-22
+
+- **Sign in with Google** for text messages: Gmail accounts that can't create app passwords (for example
+  accounts using passkeys, or without 2-Step Verification) can now connect by signing in through Google.
+  Pick the account from Google's own list, so the right one is used even when several are signed in.
+  Uses your own Google Cloud "Desktop app" client (see README). The sign-in is stored encrypted.
+
 ## 1.1.1 - 2026-10-22
 
 - Settings → Text messages: the provider help now has a clickable link to the app-password page,

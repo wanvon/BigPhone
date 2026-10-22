@@ -441,7 +441,9 @@ public partial class MainWindow : Window
         _texts?.Dispose();
         _texts = null;
         string pw = _settings.GetImapPassword();
-        if (!_settings.TextsEnabled || _settings.ImapUser.Length == 0 || pw.Length == 0) return;
+        bool google = _settings.ImapAuth == "google";
+        if (!_settings.TextsEnabled || _settings.ImapUser.Length == 0) return;
+        if (google ? !GoogleSignIn.IsSignedIn : pw.Length == 0) return;
         _texts = new TextWatcher(_settings, pw);
         _texts.NewTexts += msgs => Ui(() => OnNewTexts(msgs));
         _texts.Start();

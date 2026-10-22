@@ -76,6 +76,38 @@ Setup (helper):
 3. Big Phone → ⚙ → **Settings → Text messages**: tick *Show text messages*, pick the provider, enter the
    address and app password, press **Test connection**, then **Save**.
 
+### Gmail without an app password: Sign in with Google
+
+Use this when Google says *"The setting you are looking for is not available for your account"* on the
+App passwords page (common with passkeys), or for an account without 2-Step Verification. It works with
+any Gmail account, including the user's own, without changing how they sign in.
+
+**A. One-time Google Cloud setup** (in any Google account, e.g. the helper's):
+
+1. Open <https://console.cloud.google.com/> and create a project (or pick an existing one), e.g. "Big Phone".
+2. **APIs & Services → Library**: search **Gmail API** and click **Enable**.
+3. **Google Auth Platform** (or *OAuth consent screen*):
+   - **Branding**: App name `Big Phone`, your email as support and developer contact. Save.
+   - **Audience**: User type **External**. Click **Publish app** so the status is **In production**.
+     (In *Testing* Google signs Big Phone out every 7 days.)
+   - **Data Access → Add or remove scopes**: under *Manually add scopes* enter `https://mail.google.com/`,
+     click **Add to table**, tick it, **Update**, **Save**.
+4. **Clients → Create client**: Application type **Desktop app**, name `Big Phone`, **Create**, then
+   **Download JSON** (a `client_secret_….json` file in Downloads).
+
+**B. In Big Phone** (⚙ → Settings → TEXT MESSAGES):
+
+1. Tick *Show text messages*, choose **Gmail – Sign in with Google (no app password)**.
+2. **📂 Choose file…** → pick the downloaded `client_secret_….json`.
+3. **Sign in with Google** → the browser opens → **pick the account whose inbox gets the FlyNumber emails**.
+4. Google warns *"Google hasn't verified this app"* (normal for a private app): **Advanced → Go to Big Phone**.
+5. Allow access (tick the Gmail box if shown) → **Continue**. When the browser says you can close the
+   window, Big Phone shows **✔ Signed in as …**.
+6. **Test connection**, then **✔ Save**.
+
+The sign-in is stored encrypted (`google-signin.dat`). To disconnect: Google Account → Security →
+*Your connections to third-party apps* → Big Phone → **Delete all connections**.
+
 When a text arrives (checked every 20 s), it opens full screen unless a call is in progress, and is read
 aloud if enabled. If it contains a one-time code, the code is shown in large digits with a
 **📋 COPY CODE** button (Ctrl+C also works). Texts are kept in `texts.json` (last 100).

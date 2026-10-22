@@ -7,3 +7,7 @@ dist/
 # never commit real settings (contain the account and encrypted password)
 settings.json
 *.log
+google-signin.dat
+texts.json
+recents.json
+client_secret*.json
