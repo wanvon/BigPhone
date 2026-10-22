@@ -3,6 +3,11 @@
 All notable changes to Big Phone. Versions follow `MAJOR.MINOR.PATCH`;
 each release is tagged `vX.Y.Z` on GitHub and installed copies update themselves.
 
+## 1.1.1 - 2026-10-22
+
+- Settings → Text messages: the provider help now has a clickable link to the app-password page,
+  and recommends a separate mailbox just for Big Phone so the user never has to sign in to it.
+
 ## 1.1.0 - 2026-10-22
 
 - **Text messages (receive only).** FlyNumber has no SMS API and doesn't send texts over SIP; it emails

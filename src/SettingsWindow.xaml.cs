@@ -57,18 +57,24 @@ public partial class SettingsWindow : Window
                         $"Account and network settings: ⚙ → Advanced (settings file).";
     }
 
-    record Provider(string Name, string Host, string Help);
+    record Provider(string Name, string Host, string Help, string Url = "");
+
+    const string Tip = " Tip: use a separate mailbox just for Big Phone (set up with the helper's phone), so the user never has to sign in to it.";
 
     static readonly Provider[] Providers =
     {
         new("Gmail", "imap.gmail.com",
-            "Gmail: turn on 2-Step Verification, then create an app password at myaccount.google.com/apppasswords and paste it here."),
+            "Gmail: turn on 2-Step Verification, then create an app password and paste it here." + Tip,
+            "https://myaccount.google.com/apppasswords"),
         new("Yahoo Mail", "imap.mail.yahoo.com",
-            "Yahoo: Account Info → Account Security → Generate app password."),
+            "Yahoo: Account Security → Generate app password." + Tip,
+            "https://login.yahoo.com/myaccount/security/"),
         new("iCloud Mail", "imap.mail.me.com",
-            "iCloud: appleid.apple.com → Sign-In and Security → App-Specific Passwords. Use your @icloud.com address."),
+            "iCloud: Sign-In and Security → App-Specific Passwords. Use your @icloud.com address." + Tip,
+            "https://account.apple.com/account/manage"),
         new("AOL Mail", "imap.aol.com",
-            "AOL: Account Security → Generate app password."),
+            "AOL: Account Security → Generate app password." + Tip,
+            "https://login.aol.com/account/security"),
         new("Other (IMAP)", "",
             "Type your provider's IMAP server name. Big Phone uses port 993 with encryption. Outlook.com / Hotmail no longer allow app passwords, so they can't be used."),
     };
@@ -77,7 +83,21 @@ public partial class SettingsWindow : Window
     {
         if (ProviderBox.SelectedIndex < 0) return;
         var p = Providers[ProviderBox.SelectedIndex];
-        ProviderHelp.Text = p.Help;
+        ProviderHelp.Inlines.Clear();
+        ProviderHelp.Inlines.Add(new System.Windows.Documents.Run(p.Help + " "));
+        if (p.Url.Length > 0)
+        {
+            var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run("Open " + new Uri(p.Url).Host))
+            {
+                NavigateUri = new Uri(p.Url), Foreground = System.Windows.Media.Brushes.LightSkyBlue
+            };
+            link.RequestNavigate += (_, ev) =>
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ev.Uri.AbsoluteUri) { UseShellExecute = true });
+                ev.Handled = true;
+            };
+            ProviderHelp.Inlines.Add(link);
+        }
         bool other = p.Host.Length == 0;
         ImapHostBox.IsEnabled = other;
         if (!other) ImapHostBox.Text = p.Host;
