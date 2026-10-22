@@ -52,6 +52,16 @@ public class PhoneSettings
     public string UpdateRepo { get; set; } = "wanvon/BigPhone";
     public bool AutoUpdate { get; set; } = true;            // installs only at startup or 2-5 AM, never during a call
 
+    // --- Text messages (read from FlyNumber's "New SMS" notification emails) ---
+    public bool TextsEnabled { get; set; } = false;
+    public string ImapHost { get; set; } = "imap.gmail.com";
+    public int ImapPort { get; set; } = 993;
+    public string ImapUser { get; set; } = "";
+    public string ImapPasswordProtected { get; set; } = "";
+    public int TextsPollSeconds { get; set; } = 20;
+    public bool PopUpNewTexts { get; set; } = true;          // open new texts full screen when not on a call
+    public bool SpeakNewTexts { get; set; } = true;          // "New text from 12345. The code is 4 8 2 9 1 3"
+
     public List<SpeedDial> SpeedDials { get; set; } = new();
 
     // ------------------------------------------------------------------
@@ -106,25 +116,32 @@ public class PhoneSettings
         File.WriteAllText(FilePath, JsonSerializer.Serialize(this, JsonOpts));
     }
 
-    public string GetPassword()
+    public string GetPassword() => Unprotect(PasswordProtected);
+
+    public void SetPassword(string plain)
     {
-        if (string.IsNullOrEmpty(PasswordProtected)) return "";
+        PasswordProtected = Protect(plain);
+        Password = "";
+    }
+
+    public string GetImapPassword() => Unprotect(ImapPasswordProtected);
+    public void SetImapPassword(string plain) => ImapPasswordProtected = Protect(plain);
+
+    static string Protect(string plain) =>
+        Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(plain), null, DataProtectionScope.CurrentUser));
+
+    static string Unprotect(string protectedText)
+    {
+        if (string.IsNullOrEmpty(protectedText)) return "";
         try
         {
-            var bytes = ProtectedData.Unprotect(Convert.FromBase64String(PasswordProtected), null, DataProtectionScope.CurrentUser);
+            var bytes = ProtectedData.Unprotect(Convert.FromBase64String(protectedText), null, DataProtectionScope.CurrentUser);
             return Encoding.UTF8.GetString(bytes);
         }
         catch
         {
             return "";   // encrypted by a different Windows user / PC
         }
-    }
-
-    public void SetPassword(string plain)
-    {
-        var bytes = ProtectedData.Protect(Encoding.UTF8.GetBytes(plain), null, DataProtectionScope.CurrentUser);
-        PasswordProtected = Convert.ToBase64String(bytes);
-        Password = "";
     }
 
     public string NameForNumber(string number)

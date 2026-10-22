@@ -71,6 +71,8 @@ public partial class MainWindow : Window
         ShowIdleStatus();
         UpdateButtons();
         UpdateRecentsBadge();
+        UpdateTextsBadge();
+        StartTextWatcher();
         _phone.Start();
 
         _updateTimer.Tick += async (_, _) => await UpdateTickAsync(false);
@@ -169,6 +171,7 @@ public partial class MainWindow : Window
         MuteText.Text = _phone?.IsMuted == true ? "UNMUTE" : "MUTE";
         MuteButton.Background = _phone?.IsMuted == true ? MutedBrush : UnmutedBrush;
         ContactsButton.IsEnabled = idle;
+        TextsButton.IsEnabled = idle;
         RecentsButton.IsEnabled = idle;
     }
 
@@ -408,18 +411,113 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Shows the full-screen list; if a row is tapped, calls it.</summary>
-    async Task PickAndCallAsync(string header, IEnumerable<PickItem> items, string empty)
+    PickItem? PickFromList(string header, IEnumerable<PickItem> items, string empty)
     {
         CloseHelperWindow();
         var w = new PickerWindow(header, items, empty) { Owner = this };
         _helperWindow = w;   // an incoming call closes it
         bool? ok = w.ShowDialog();
         if (_helperWindow == w) _helperWindow = null;
-        if (ok == true && w.Chosen is { } c && _state == UiState.Idle)
+        return ok == true ? w.Chosen : null;
+    }
+
+    async Task PickAndCallAsync(string header, IEnumerable<PickItem> items, string empty)
+    {
+        if (PickFromList(header, items, empty) is { } c && _state == UiState.Idle)
         {
             _number = c.Number;
             UpdateNumber();
             await StartCallAsync(c.Number, c.CallName);
+        }
+    }
+
+    // ---- text messages
+
+    TextWatcher? _texts;
+    static readonly Brush NewTextBrush = new SolidColorBrush(Color.FromRgb(0x1B, 0x8E, 0x3A));
+
+    void StartTextWatcher()
+    {
+        _texts?.Dispose();
+        _texts = null;
+        string pw = _settings.GetImapPassword();
+        if (!_settings.TextsEnabled || _settings.ImapUser.Length == 0 || pw.Length == 0) return;
+        _texts = new TextWatcher(_settings, pw);
+        _texts.NewTexts += msgs => Ui(() => OnNewTexts(msgs));
+        _texts.Start();
+    }
+
+    void UpdateTextsBadge()
+    {
+        bool on = _settings.TextsEnabled;
+        TextsButton.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        TextsRow.Height = on ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        int unread = TextStore.Unread;
+        TextsText.Text = unread == 1 ? "1 NEW TEXT" : unread > 1 ? $"{unread} NEW TEXTS" : "TEXTS";
+        TextsButton.Background = unread > 0 ? NewTextBrush : RecentsBrush;
+    }
+
+    string WhoSent(TextMessage m)
+    {
+        string name = _settings.NameForNumber(m.From);
+        if (name.Length > 0) return name;
+        string d = PhoneSettings.DigitsOnly(m.From);
+        return d.Length >= 10 ? FormatNumber(d) : m.From;
+    }
+
+    void OnNewTexts(List<TextMessage> msgs)
+    {
+        UpdateTextsBadge();
+        var newest = msgs.OrderByDescending(m => m.Time).First();
+        if (_state != UiState.Idle) return;   // never interrupt a call; the green TEXTS button shows it
+
+        if (_settings.SpeakNewTexts)
+        {
+            string code = newest.Code;
+            Say($"New text from {WhoSent(newest)}." + (code.Length > 0 ? $" The code is {string.Join(" ", code.ToCharArray())}." : ""));
+        }
+        if (_settings.PopUpNewTexts && _helperWindow == null)
+        {
+            if (WindowState == WindowState.Minimized) WindowState = WindowState.Maximized;
+            Activate();
+            _ = ShowMessage(newest);
+        }
+    }
+
+    async void Texts_Click(object sender, RoutedEventArgs e)
+    {
+        if (_state != UiState.Idle) return;
+        var items = TextStore.Messages.Select(m =>
+        {
+            string preview = m.Text.Replace('\n', ' ');
+            if (preview.Length > 45) preview = preview[..45] + "…";
+            return new PickItem
+            {
+                Title = (m.Read ? "" : "● ") + WhoSent(m),
+                Detail = $"{m.Time:ddd h:mm tt}  ·  {preview}",
+                Background = m.Read ? PickItem.Gray : PickItem.Green,
+                Tag = m,
+            };
+        });
+        var chosen = PickFromList("Text messages – tap to read", items,
+            _settings.TextsEnabled ? "No texts yet." : "Text messages are not set up. Your helper can turn them on in ⚙ → Settings.");
+        if (chosen?.Tag is TextMessage msg) await ShowMessage(msg);
+    }
+
+    async Task ShowMessage(TextMessage msg)
+    {
+        TextStore.MarkRead(msg);
+        UpdateTextsBadge();
+        CloseHelperWindow();
+        var w = new MessageWindow(msg, WhoSent(msg), Say) { Owner = this };
+        _helperWindow = w;   // an incoming call closes it
+        w.ShowDialog();
+        if (_helperWindow == w) _helperWindow = null;
+        if (w.CallBackRequested && _state == UiState.Idle)
+        {
+            _number = msg.From;
+            UpdateNumber();
+            await StartCallAsync(msg.From, _settings.NameForNumber(msg.From));
         }
     }
 
@@ -578,6 +676,8 @@ public partial class MainWindow : Window
                 _ringer = new Ringer(SipPhone.FindOutputDevice(_settings.RingDevice));
             }
             FlashStatus("✔ Settings saved", ReadyBrush);
+            StartTextWatcher();
+            UpdateTextsBadge();
         };
         ShowHelperWindow(w);
     }
@@ -655,6 +755,7 @@ public partial class MainWindow : Window
         }
         _ringer.Dispose();
         _voice?.Dispose();
+        _texts?.Dispose();
         _phone.Dispose();
     }
 }

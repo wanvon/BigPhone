@@ -83,6 +83,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition/>
                         <RowDefinition/>
+                        <RowDefinition x:Name="TextsRow"/>
                     </Grid.RowDefinitions>
                     <Button x:Name="ContactsButton" Style="{StaticResource Big}" Background="#1E4C9A"
                             Click="Contacts_Click" ToolTip="Pick a person to call">
@@ -96,6 +97,13 @@
                         <StackPanel>
                             <TextBlock Text="🕘" HorizontalAlignment="Center"/>
                             <TextBlock x:Name="RecentsText" Text="RECENTS" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="TextsButton" Grid.Row="2" Style="{StaticResource Big}" Background="#3A3A3A"
+                            Click="Texts_Click" ToolTip="Text messages">
+                        <StackPanel>
+                            <TextBlock Text="💬" HorizontalAlignment="Center"/>
+                            <TextBlock x:Name="TextsText" Text="TEXTS" HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </Grid>

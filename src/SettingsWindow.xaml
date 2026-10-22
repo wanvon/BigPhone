@@ -48,6 +48,35 @@
                 <TextBlock Text="Answer calls automatically" Style="{StaticResource DlgLabel}"/>
                 <ComboBox x:Name="AutoAnswerBox" Style="{StaticResource DlgCombo}"/>
 
+                <TextBlock Text="TEXT MESSAGES" FontSize="18" FontWeight="Bold" Foreground="#FFD600" Margin="6,24,6,0"/>
+                <TextBlock FontSize="16" Foreground="#AAA" TextWrapping="Wrap" Margin="6,4,6,0">
+                    FlyNumber can't send texts to apps directly; it emails each one. Big Phone reads those emails
+                    (only ones from notifications@mail.flynumber.com) and shows the text in big print, with a COPY CODE
+                    button for one-time codes. In the FlyNumber panel, under Settings → Notifications, send SMS emails
+                    to the address below.
+                </TextBlock>
+                <CheckBox x:Name="TextsEnabledBox" Style="{StaticResource DlgCheck}" Content="Show text messages in Big Phone"/>
+
+                <TextBlock Text="Email provider" Style="{StaticResource DlgLabel}"/>
+                <ComboBox x:Name="ProviderBox" Style="{StaticResource DlgCombo}" SelectionChanged="Provider_Changed"/>
+                <TextBlock Text="Email server (IMAP)" Style="{StaticResource DlgLabel}"/>
+                <TextBox x:Name="ImapHostBox" Style="{StaticResource DlgText}" FontSize="24"/>
+                <TextBlock Text="Email address" Style="{StaticResource DlgLabel}"/>
+                <TextBox x:Name="ImapUserBox" Style="{StaticResource DlgText}" FontSize="24"/>
+                <TextBlock x:Name="ImapPasswordLabel" Text="App password" Style="{StaticResource DlgLabel}"/>
+                <PasswordBox x:Name="ImapPasswordBox" FontSize="24" Padding="8,4" Margin="6,0,6,6"/>
+                <TextBlock x:Name="ProviderHelp" FontSize="16" Foreground="#AAA" TextWrapping="Wrap" Margin="6,0,6,6"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Content="Test connection" Style="{StaticResource DlgButton}" Click="TestImap_Click"/>
+                    <TextBlock x:Name="ImapTestResult" Grid.Column="1" FontSize="18" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0"/>
+                </Grid>
+                <CheckBox x:Name="PopUpTextsBox" Style="{StaticResource DlgCheck}" Content="Open new texts full screen (not during calls)"/>
+                <CheckBox x:Name="SpeakTextsBox" Style="{StaticResource DlgCheck}" Content="Read new texts out loud"/>
+
                 <TextBlock Text="UPDATES" FontSize="18" FontWeight="Bold" Foreground="#FFD600" Margin="6,24,6,0"/>
                 <CheckBox x:Name="AutoUpdateBox" Style="{StaticResource DlgCheck}" Content="Install updates automatically (only when not on a call)"/>
 

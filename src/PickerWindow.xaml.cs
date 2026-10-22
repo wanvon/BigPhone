@@ -13,10 +13,12 @@ public class PickItem
     public string Number { get; init; } = "";
     public string CallName { get; init; } = "";
     public Brush Background { get; init; } = Blue;
+    public object? Tag { get; init; }   // e.g. the TextMessage behind a row
 
     public static readonly Brush Blue = Frozen(0x1E, 0x4C, 0x9A);
     public static readonly Brush Red = Frozen(0x8E, 0x1C, 0x1C);
     public static readonly Brush Gray = Frozen(0x2E, 0x2E, 0x2E);
+    public static readonly Brush Green = Frozen(0x1B, 0x6E, 0x2E);
 
     static Brush Frozen(byte r, byte g, byte b)
     {

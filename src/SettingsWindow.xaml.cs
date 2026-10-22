@@ -39,8 +39,67 @@ public partial class SettingsWindow : Window
             AutoAnswerBox.Items.Add(new ComboBoxItem { Content = s == 0 ? "Never" : $"After {s} seconds", Tag = s });
         AutoAnswerBox.SelectedItem = AutoAnswerBox.Items.Cast<ComboBoxItem>().First(i => (int)i.Tag == settings.AutoAnswerSeconds);
 
+        // Text messages
+        TextsEnabledBox.IsChecked = settings.TextsEnabled;
+        PopUpTextsBox.IsChecked = settings.PopUpNewTexts;
+        SpeakTextsBox.IsChecked = settings.SpeakNewTexts;
+        ImapUserBox.Text = settings.ImapUser;
+        ImapHostBox.Text = settings.ImapHost;
+        foreach (var p in Providers) ProviderBox.Items.Add(p.Name);
+        ProviderBox.SelectedIndex = Math.Max(0, Array.FindIndex(Providers, p => p.Host == settings.ImapHost));
+        if (Array.FindIndex(Providers, p => p.Host == settings.ImapHost) < 0 && settings.ImapHost.Length > 0)
+            ProviderBox.SelectedIndex = Providers.Length - 1;   // "Other"
+        ImapHostBox.Text = settings.ImapHost;
+        if (settings.ImapPasswordProtected.Length > 0)
+            ImapPasswordLabel.Text = "App password (saved – leave empty to keep it)";
+
         InfoText.Text = $"Big Phone {Updater.CurrentVersionText}  ·  account {settings.Username}@{settings.Server}\n" +
                         $"Account and network settings: ⚙ → Advanced (settings file).";
+    }
+
+    record Provider(string Name, string Host, string Help);
+
+    static readonly Provider[] Providers =
+    {
+        new("Gmail", "imap.gmail.com",
+            "Gmail: turn on 2-Step Verification, then create an app password at myaccount.google.com/apppasswords and paste it here."),
+        new("Yahoo Mail", "imap.mail.yahoo.com",
+            "Yahoo: Account Info → Account Security → Generate app password."),
+        new("iCloud Mail", "imap.mail.me.com",
+            "iCloud: appleid.apple.com → Sign-In and Security → App-Specific Passwords. Use your @icloud.com address."),
+        new("AOL Mail", "imap.aol.com",
+            "AOL: Account Security → Generate app password."),
+        new("Other (IMAP)", "",
+            "Type your provider's IMAP server name. Big Phone uses port 993 with encryption. Outlook.com / Hotmail no longer allow app passwords, so they can't be used."),
+    };
+
+    void Provider_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (ProviderBox.SelectedIndex < 0) return;
+        var p = Providers[ProviderBox.SelectedIndex];
+        ProviderHelp.Text = p.Help;
+        bool other = p.Host.Length == 0;
+        ImapHostBox.IsEnabled = other;
+        if (!other) ImapHostBox.Text = p.Host;
+    }
+
+    string ImapPasswordToUse() =>
+        ImapPasswordBox.Password.Length > 0 ? ImapPasswordBox.Password.Replace(" ", "") : _settings.GetImapPassword();
+
+    async void TestImap_Click(object sender, RoutedEventArgs e)
+    {
+        ImapTestResult.Foreground = System.Windows.Media.Brushes.LightGray;
+        ImapTestResult.Text = "Connecting…";
+        try
+        {
+            ImapTestResult.Text = await TextWatcher.TestAsync(ImapHostBox.Text.Trim(), _settings.ImapPort, ImapUserBox.Text.Trim(), ImapPasswordToUse());
+            ImapTestResult.Foreground = System.Windows.Media.Brushes.LightGreen;
+        }
+        catch (Exception ex)
+        {
+            ImapTestResult.Text = "✖ " + ex.Message;
+            ImapTestResult.Foreground = System.Windows.Media.Brushes.Salmon;
+        }
     }
 
     static void FillDevices(ComboBox box, List<string> devices, string current)
@@ -89,6 +148,12 @@ public partial class SettingsWindow : Window
         _settings.AddUSCountryCode = USCodeBox.IsChecked == true;
         _settings.AutoUpdate = AutoUpdateBox.IsChecked == true;
         _settings.AutoAnswerSeconds = AutoAnswerBox.SelectedItem is ComboBoxItem { Tag: int s } ? s : 0;
+        _settings.TextsEnabled = TextsEnabledBox.IsChecked == true;
+        _settings.PopUpNewTexts = PopUpTextsBox.IsChecked == true;
+        _settings.SpeakNewTexts = SpeakTextsBox.IsChecked == true;
+        _settings.ImapHost = ImapHostBox.Text.Trim();
+        _settings.ImapUser = ImapUserBox.Text.Trim();
+        if (ImapPasswordBox.Password.Length > 0) _settings.SetImapPassword(ImapPasswordBox.Password.Replace(" ", ""));   // Google shows app passwords with spaces
         try { _settings.Save(); }
         catch (Exception ex) { MessageBox.Show(this, $"Could not save settings:\n{ex.Message}", "Big Phone"); return; }
         Log.Write("Settings saved");

@@ -8,11 +8,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>BigPhone</AssemblyName>
     <RootNamespace>BigPhone</RootNamespace>
-    <Version>1.0.2</Version>
+    <Version>1.1.0</Version>
     <ApplicationIcon>phone.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MailKit" Version="4.18.1" />
     <PackageReference Include="SIPSorcery" Version="10.0.17" />
     <PackageReference Include="SIPSorceryMedia.Windows" Version="10.0.17" />
     <PackageReference Include="System.Speech" Version="10.0.0" />

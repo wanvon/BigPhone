@@ -3,6 +3,17 @@
 All notable changes to Big Phone. Versions follow `MAJOR.MINOR.PATCH`;
 each release is tagged `vX.Y.Z` on GitHub and installed copies update themselves.
 
+## 1.1.0 - 2026-10-22
+
+- **Text messages (receive only).** FlyNumber has no SMS API and doesn't send texts over SIP; it emails
+  each incoming text. Big Phone can read those emails (IMAP: Gmail, Yahoo, iCloud, AOL or other) and show
+  each text full screen in huge print. Turn on in ⚙ → Settings → Text messages. Off by default.
+- **📋 COPY CODE**: one-time codes (e.g. "G-123456", "123-456", "Your code is 482913") are found
+  automatically, shown big, and copied to the clipboard with one tap. Also COPY TEXT, READ aloud, CALL back.
+- New **💬 TEXTS** button on the main screen; turns green with "1 NEW TEXT" until read.
+- New texts open automatically (and can be read aloud, including the code) when not on a call.
+- The email app password is stored encrypted (Windows DPAPI), like the SIP password.
+
 ## 1.0.2 - 2026-10-22
 
 - **CONTACTS** button on the main screen opens a full-screen, scrolling list of big name buttons

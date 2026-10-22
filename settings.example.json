@@ -12,6 +12,13 @@
   "SpeakCallerName": true,
   "SpeakStatus": false,
   "AutoAnswerSeconds": 0,
+  "TextsEnabled": false,
+  "ImapHost": "imap.gmail.com",
+  "ImapPort": 993,
+  "ImapUser": "phone.texts@gmail.com",
+  "TextsPollSeconds": 20,
+  "PopUpNewTexts": true,
+  "SpeakNewTexts": true,
   "AutoUpdate": true,
   "UpdateRepo": "wanvon/BigPhone",
   "SpeedDials": [

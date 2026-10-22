@@ -6,6 +6,7 @@ works with any standard SIP/UDP provider.
 
 - Huge keypad, **CALL**, **HANG UP** and **MUTE** buttons that fill the screen
 - **CONTACTS**: full-screen scrolling list of big name buttons; tap a name to call
+- **TEXTS**: incoming text messages in huge print, with a one-tap **COPY CODE** button for one-time passcodes
 - **RECENTS**: recent calls with time and length, tap to call back; shows "2 MISSED" in red when calls were missed
 - Incoming calls take over the whole screen, flash, ring loudly, and **say who is calling**
 - Big coloured status bar: green = ready, red = not connected, blue = talking (with call timer)
@@ -59,6 +60,28 @@ Account and network options are only in `settings.json` (see [`settings.example.
 | `RingTimeoutSeconds` | Give up an outgoing call after this long |
 | `SipTrace` | Write full SIP messages to `bigphone.log` for troubleshooting |
 | `UpdateRepo` | GitHub repository updates come from |
+
+## Text messages (receive only)
+
+FlyNumber doesn't deliver texts to SIP apps and has no SMS API yet. It **emails** every incoming text
+(`FlyNumber: New SMS from …`, sent by `notifications@mail.flynumber.com`). Big Phone reads those emails
+and shows each text full screen. Only emails from that sender are read; nothing is deleted or changed.
+
+Setup (helper):
+
+1. Use a mailbox that supports app passwords. A **dedicated Gmail** for the phone is best.
+   For Gmail: turn on 2-Step Verification, then create an app password at
+   <https://myaccount.google.com/apppasswords>.
+2. FlyNumber panel → **Settings → Notifications**: send SMS emails to that address (verify it).
+3. Big Phone → ⚙ → **Settings → Text messages**: tick *Show text messages*, pick the provider, enter the
+   address and app password, press **Test connection**, then **Save**.
+
+When a text arrives (checked every 20 s), it opens full screen unless a call is in progress, and is read
+aloud if enabled. If it contains a one-time code, the code is shown in large digits with a
+**📋 COPY CODE** button (Ctrl+C also works). Texts are kept in `texts.json` (last 100).
+
+Limits: **sending texts isn't possible** from Big Phone. FlyNumber only allows sending from its web panel,
+and doesn't yet allow texting US numbers at all. Outlook.com / Hotmail can't be used (no app passwords).
 
 ## Updates & versions
 
