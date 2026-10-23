@@ -45,7 +45,11 @@ public static class TextStore
         try
         {
             if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<Store>(File.ReadAllText(FilePath)) ?? new Store();
+            {
+                var store = JsonSerializer.Deserialize<Store>(File.ReadAllText(FilePath)) ?? new Store();
+                foreach (var m in store.Messages) m.Text = TextWatcher.Clean(m.Text, m.From);
+                return store;
+            }
         }
         catch (Exception ex) { Log.Write($"Could not read texts.json: {ex.Message}"); }
         return new Store();
@@ -216,7 +220,11 @@ public sealed class TextWatcher : IDisposable
             newLast = Math.Max(newLast, uid.Id);
             var msg = await inbox.GetMessageAsync(uid);
             var text = Parse(msg);
-            if (text == null) continue;
+            if (text == null)
+            {
+                Log.Write($"Skipped FlyNumber email with subject \"{msg.Subject}\" (not an SMS notification)");
+                continue;
+            }
             text.Read = firstRun;   // history from before Big Phone was set up doesn't pop up
             result.Add(text);
         }
@@ -246,9 +254,21 @@ public sealed class TextWatcher : IDisposable
     /// The email body holds sender, receiving number and the message. Prefer a labelled "Message:" block;
     /// otherwise drop header-like and boilerplate lines and keep the rest.
     /// </summary>
+    /// <summary>Re-cleans a stored text (texts saved by older versions may still contain the From/To lines).</summary>
+    public static string Clean(string text, string from) => ExtractMessage(text, from);
+
     static string ExtractMessage(string body, string from)
     {
         var lines = body.Replace("\r", "").Split('\n').Select(l => l.Trim()).ToList();
+
+        // FlyNumber's real layout (seen Oct 2026): "From" / "+1 941-315-3095" / "To" / "+1 352-652-5855" / message.
+        // Drop bare labels and the phone-number line that follows each one.
+        for (int i = lines.Count - 1; i >= 0; i--)
+        {
+            if (!Regex.IsMatch(lines[i], @"^(from|to|sender|recipient|received|date|time|number)$", RegexOptions.IgnoreCase)) continue;
+            if (i + 1 < lines.Count && IsPhoneLine(lines[i + 1])) lines.RemoveAt(i + 1);
+            lines.RemoveAt(i);
+        }
 
         int label = lines.FindIndex(l => Regex.IsMatch(l, @"^(message|text|sms|body)\s*:", RegexOptions.IgnoreCase));
         if (label >= 0)
@@ -264,6 +284,9 @@ public sealed class TextWatcher : IDisposable
         string text = string.Join("\n", kept).Trim();
         return text.Length > 0 ? text : body.Trim();
     }
+
+    // A line that is only a phone number / short code ("+1 941-315-3095", "22000").
+    static bool IsPhoneLine(string l) => Regex.IsMatch(l, @"^\+?[\d\s\-().]{4,20}$") && l.Count(char.IsDigit) >= 4;
 
     static bool IsBoilerplate(string l) =>
         Regex.IsMatch(l, @"(https?://|unsubscribe|notification settings|panel\.flynumber|manage .*notifications|you('re| are) receiving|©|all rights reserved|new sms from)",

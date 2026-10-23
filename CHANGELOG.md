@@ -3,6 +3,12 @@
 All notable changes to Big Phone. Versions follow `MAJOR.MINOR.PATCH`;
 each release is tagged `vX.Y.Z` on GitHub and installed copies update themselves.
 
+## 1.2.1 - 2026-10-22
+
+- Texts: handle FlyNumber's real email layout ("From" / number / "To" / number / message), so only the
+  message itself is shown. Texts already received are cleaned up automatically.
+- Log a line when a FlyNumber email is skipped because it isn't an SMS notification.
+
 ## 1.2.0 - 2026-10-22
 
 - **Sign in with Google** for text messages: Gmail accounts that can't create app passwords (for example
