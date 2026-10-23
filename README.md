@@ -42,7 +42,7 @@ Click the small **⚙** in the top-right corner of the status bar:
 | Menu button | What it does |
 |---|---|
 | **Contacts** | Add / edit / delete / reorder contacts shown by the CONTACTS button (first 6 also on F1–F6). Incoming calls from them show and speak the name. |
-| **Settings** | Speaker, microphone and ring device (with ▶ Test), spoken caller name, spoken status, US country code, auto-answer, automatic updates. |
+| **Settings** | Theme (Classic, Dark blue & gold, Light, Auto), speaker, microphone and ring device (with ▶ Test), spoken caller name, spoken status, US country code, auto-answer, automatic updates. |
 | **Check for updates** | Looks for a newer version now and offers to install it. |
 | **Advanced (settings file)** | Opens `settings.json` in Notepad; Big Phone restarts when Notepad is closed. |
 

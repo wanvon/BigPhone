@@ -36,6 +36,12 @@ public partial class SettingsWindow : Window
         AutoUpdateBox.IsChecked = settings.AutoUpdate;
         KeepRunningBox.IsChecked = settings.KeepRunning;
 
+        _themeAtOpen = settings.Theme;
+        foreach (var (name, label) in ThemeLabels) ThemeBox.Items.Add(new ComboBoxItem { Content = label, Tag = name });
+        ThemeBox.SelectedItem = ThemeBox.Items.Cast<ComboBoxItem>().FirstOrDefault(i => (string)i.Tag == settings.Theme)
+                                ?? ThemeBox.Items[0];
+        Closed += (_, _) => { if (!_saved && Theme.Current != _themeAtOpen) Theme.Apply(_themeAtOpen); };   // Cancel undoes the preview
+
         int[] choices = { 0, 3, 5, 10, 15, 20, 30 };
         foreach (int s in choices.Union(new[] { settings.AutoAnswerSeconds }).OrderBy(x => x))
             AutoAnswerBox.Items.Add(new ComboBoxItem { Content = s == 0 ? "Never" : $"After {s} seconds", Tag = s });
@@ -98,7 +104,7 @@ public partial class SettingsWindow : Window
         {
             var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run("Open " + new Uri(p.Url).Host))
             {
-                NavigateUri = new Uri(p.Url), Foreground = System.Windows.Media.Brushes.LightSkyBlue
+                NavigateUri = new Uri(p.Url), Foreground = Theme.Get("LinkFg")
             };
             link.RequestNavigate += (_, ev) =>
             {
@@ -177,19 +183,19 @@ public partial class SettingsWindow : Window
 
     async void TestImap_Click(object sender, RoutedEventArgs e)
     {
-        ImapTestResult.Foreground = System.Windows.Media.Brushes.LightGray;
+        ImapTestResult.Foreground = Theme.Get("SubtleFg");
         ImapTestResult.Text = "Connecting…";
         try
         {
             ImapTestResult.Text = GoogleSelected
                 ? await TextWatcher.TestAsync(_settings, true, "imap.gmail.com", _settings.ImapPort, _settings.ImapUser, "")
                 : await TextWatcher.TestAsync(_settings, false, ImapHostBox.Text.Trim(), _settings.ImapPort, ImapUserBox.Text.Trim(), ImapPasswordToUse());
-            ImapTestResult.Foreground = System.Windows.Media.Brushes.LightGreen;
+            ImapTestResult.Foreground = Theme.Get("OkFg");
         }
         catch (Exception ex)
         {
             ImapTestResult.Text = "✖ " + ex.Message;
-            ImapTestResult.Foreground = System.Windows.Media.Brushes.Salmon;
+            ImapTestResult.Foreground = Theme.Get("ErrorFg");
         }
     }
 
@@ -210,6 +216,22 @@ public partial class SettingsWindow : Window
 
     static string DeviceValue(ComboBox box) =>
         box.SelectedItem is string s && s != DefaultDevice ? s : "";
+
+    static readonly (string name, string label)[] ThemeLabels =
+    {
+        ("Classic", "Classic – black and grey"),
+        ("Dark", "Dark – blue and gold"),
+        ("Light", "Light – blue and gold on white"),
+        ("Auto", "Auto – Light or Dark, following Windows"),
+    };
+
+    string _themeAtOpen = "Classic";
+    bool _saved;
+
+    void Theme_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (ThemeBox.SelectedItem is ComboBoxItem { Tag: string t } && t != Theme.Current) Theme.Apply(t);   // live preview
+    }
 
     void TestChime_Click(object sender, RoutedEventArgs e) => Chime.Play(SipPhone.FindOutputDevice(DeviceValue(RingBox)), soft: false);
 
@@ -241,6 +263,8 @@ public partial class SettingsWindow : Window
         _settings.AddUSCountryCode = USCodeBox.IsChecked == true;
         _settings.AutoUpdate = AutoUpdateBox.IsChecked == true;
         _settings.KeepRunning = KeepRunningBox.IsChecked == true;
+        _settings.Theme = ThemeBox.SelectedItem is ComboBoxItem { Tag: string t } ? t : "Classic";
+        _saved = true;
         _settings.AutoAnswerSeconds = AutoAnswerBox.SelectedItem is ComboBoxItem { Tag: int s } ? s : 0;
         _settings.TextsEnabled = TextsEnabledBox.IsChecked == true;
         _settings.PopUpNewTexts = PopUpTextsBox.IsChecked == true;

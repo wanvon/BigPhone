@@ -11,3 +11,5 @@ google-signin.dat
 texts.json
 recents.json
 client_secret*.json
+# local flight-recorder log (C:\info-base rule), not for the public repo
+session_history.txt

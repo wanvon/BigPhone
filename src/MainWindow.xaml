@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Big Phone" Width="1100" Height="850" MinWidth="700" MinHeight="600"
-        WindowState="Maximized" Background="#101010"
+        WindowState="Maximized" Background="{DynamicResource Bg}"
         FontFamily="Segoe UI" Foreground="White"
         KeyDown="Window_KeyDown" Closing="Window_Closing">
 
@@ -14,7 +14,7 @@
 
     <Grid>
         <!-- ========================= NORMAL SCREEN ========================= -->
-        <Grid x:Name="MainScreen" Margin="12">
+        <Grid x:Name="MainScreen" Margin="12" SizeChanged="MainScreen_SizeChanged">
             <Grid.RowDefinitions>
                 <RowDefinition Height="1.1*"/>
                 <RowDefinition Height="7.4*"/>
@@ -32,7 +32,7 @@
                     </Viewbox>
                     <!-- Settings menu: a real button at the end of the status bar, clearly visible but out of the way -->
                     <Button x:Name="SettingsButton" Grid.Column="1" Style="{StaticResource Big}" Width="120" Margin="4"
-                            Background="#33000000" ToolTip="Settings menu (Contacts, Settings, Updates)" Click="Settings_Click">
+                            Background="{DynamicResource GearBg}" Foreground="{DynamicResource GearFg}" ToolTip="Settings menu (Contacts, Settings, Updates)" Click="Settings_Click">
                         <TextBlock Text="⚙" FontWeight="Normal"/>
                     </Button>
                 </Grid>
@@ -54,7 +54,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- Number field with a small erase icon at its right end -->
-                    <Border Background="White" CornerRadius="16" Margin="8">
+                    <Border Background="White" CornerRadius="16" Margin="8" BorderBrush="{DynamicResource FieldBorder}" BorderThickness="3">
                         <!-- right-click: paste / copy / clear (also Ctrl+V, Ctrl+C) -->
                         <Border.ContextMenu>
                             <ContextMenu FontSize="32">
@@ -73,7 +73,7 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Name="NumberText" Text="" FontSize="96" FontWeight="Bold"
                                                Foreground="Black" FontFamily="Consolas" VerticalAlignment="Center"/>
-                                    <Rectangle x:Name="Caret" Width="9" Height="104" Fill="#1E4C9A" Margin="6,0,0,0"
+                                    <Rectangle x:Name="Caret" Width="9" Height="104" Fill="#1952B3" Margin="6,0,0,0"
                                                VerticalAlignment="Center" Visibility="Hidden"/>
                                     <TextBlock x:Name="NumberHint" Text="Type a number or press CONTACTS"
                                                Foreground="#777" FontSize="48" Margin="18,0,0,0" VerticalAlignment="Center"/>
@@ -120,17 +120,17 @@
                     <!-- Call / Hang up / Mute, directly under the keypad -->
                     <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="2*"/>
-                            <ColumnDefinition Width="2*"/>
-                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Button x:Name="CallButton" Style="{StaticResource Big}" Background="#1B8E3A" Click="Call_Click">
+                        <Button x:Name="CallButton" Style="{StaticResource Label}" Background="#1B8E3A" Foreground="White" Click="Call_Click">
                             <TextBlock x:Name="CallButtonText" Text="📞 CALL"/>
                         </Button>
-                        <Button x:Name="HangUpButton" Grid.Column="1" Style="{StaticResource Big}" Background="#C62828" Click="HangUp_Click">
+                        <Button x:Name="HangUpButton" Grid.Column="1" Style="{StaticResource Label}" Background="#C62828" Foreground="White" Click="HangUp_Click">
                             <TextBlock x:Name="HangUpText" Text="HANG UP"/>
                         </Button>
-                        <Button x:Name="MuteButton" Grid.Column="2" Style="{StaticResource Big}" Background="#444" Click="Mute_Click">
+                        <Button x:Name="MuteButton" Grid.Column="2" Style="{StaticResource Label}" Background="{DynamicResource NeutralBg}" Foreground="{DynamicResource NeutralFg}" Click="Mute_Click">
                             <TextBlock x:Name="MuteText" Text="MUTE"/>
                         </Button>
                     </Grid>
@@ -143,21 +143,21 @@
                         <RowDefinition/>
                         <RowDefinition x:Name="TextsRow"/>
                     </Grid.RowDefinitions>
-                    <Button x:Name="ContactsButton" Style="{StaticResource Big}" Background="#1E4C9A"
+                    <Button x:Name="ContactsButton" Style="{StaticResource Label}" Background="{DynamicResource ContactsBg}" Foreground="{DynamicResource ContactsFg}"
                             Click="Contacts_Click" ToolTip="Pick a person to call">
                         <StackPanel>
                             <TextBlock Text="👤" HorizontalAlignment="Center"/>
                             <TextBlock Text="CONTACTS" HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="RecentsButton" Grid.Row="1" Style="{StaticResource Big}" Background="#3A3A3A"
+                    <Button x:Name="RecentsButton" Grid.Row="1" Style="{StaticResource Label}" Background="{DynamicResource NeutralBg}" Foreground="{DynamicResource NeutralFg}"
                             Click="Recents_Click" ToolTip="Recent calls">
                         <StackPanel>
                             <TextBlock Text="🕘" HorizontalAlignment="Center"/>
                             <TextBlock x:Name="RecentsText" Text="RECENTS" HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="TextsButton" Grid.Row="2" Style="{StaticResource Big}" Background="#3A3A3A"
+                    <Button x:Name="TextsButton" Grid.Row="2" Style="{StaticResource Label}" Background="{DynamicResource NeutralBg}" Foreground="{DynamicResource NeutralFg}"
                             Click="Texts_Click" ToolTip="Text messages">
                         <StackPanel>
                             <TextBlock Text="💬" HorizontalAlignment="Center"/>
@@ -186,10 +186,10 @@
                     <ColumnDefinition Width="3*"/>
                     <ColumnDefinition Width="2*"/>
                 </Grid.ColumnDefinitions>
-                <Button Style="{StaticResource Big}" Background="#1B8E3A" Click="Answer_Click">
+                <Button Style="{StaticResource Big}" Background="#1B8E3A" Foreground="White" Click="Answer_Click">
                     <TextBlock Text="ANSWER"/>
                 </Button>
-                <Button Grid.Column="1" Style="{StaticResource Big}" Background="#C62828" Click="Decline_Click">
+                <Button Grid.Column="1" Style="{StaticResource Big}" Background="#C62828" Foreground="White" Click="Decline_Click">
                     <TextBlock Text="NO"/>
                 </Button>
             </Grid>

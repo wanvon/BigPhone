@@ -19,6 +19,7 @@ public static class WindowMemory
 {
     public static void Remember(Window w, string key)
     {
+        Theme.SetTitleBar(w);
         var s = App.Settings;
         if (s == null) return;
 

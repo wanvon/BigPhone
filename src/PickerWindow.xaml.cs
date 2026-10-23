@@ -13,6 +13,7 @@ public class PickItem
     public string Number { get; init; } = "";
     public string CallName { get; init; } = "";
     public Brush Background { get; init; } = Blue;
+    public Brush Foreground { get; init; } = Brushes.White;
     public object? Tag { get; init; }   // e.g. the TextMessage behind a row
 
     public static readonly Brush Blue = Frozen(0x1E, 0x4C, 0x9A);

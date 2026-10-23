@@ -97,6 +97,8 @@ public partial class App : Application
         }
 
         Settings = settings;
+        BigPhone.Theme.Apply(settings.Theme);
+        BigPhone.Theme.WatchWindowsSetting();
         _ = Task.Run(() => KeepAlive.Sync(settings));   // make the scheduled task match the setting (and this folder)
         var main = new MainWindow(settings, password);
         MainWindow = main;

@@ -3,6 +3,21 @@
 All notable changes to Big Phone. Versions follow `MAJOR.MINOR.PATCH`;
 each release is tagged `vX.Y.Z` on GitHub and installed copies update themselves.
 
+## 1.4.0 - 2026-10-23
+
+- **Themes** (⚙ → Settings → Appearance), applied instantly to every window, with a live preview
+  (Cancel undoes it):
+  - **Classic** – the original black and grey (default).
+  - **Dark** – blue and gold: navy background, blue keypad, gold CONTACTS, slate RECENTS / TEXTS.
+  - **Light** – the same blue and gold on a light background.
+  - **Auto** – Light or Dark, following the Windows app colour setting (switches live).
+  CALL green, HANG UP red, the missed / new badges and the status colours keep their meaning in every theme.
+  Window title bars follow the theme where Windows allows it.
+- **Equal text size** for all labelled main-screen buttons (CALL / REDIAL, CLEAR / HANG UP, MUTE, CONTACTS,
+  RECENTS, TEXTS). The size is chosen so the longest label fits and adjusts when the window is resized.
+  CALL, CLEAR and MUTE are now equal widths, lined up with the keypad columns.
+- Badges show "9+ MISSED" / "9+ NEW TEXTS" for more than nine.
+
 ## 1.3.1 - 2026-10-23
 
 - New main-screen layout: the number field, keypad and CALL / CLEAR / MUTE form one dialer block of the same

@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Big Phone – Contacts" Width="1000" Height="720" MinWidth="760" MinHeight="560"
-        WindowStartupLocation="CenterOwner" Background="#1A1A1A" Foreground="White"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource Surface}" Foreground="{DynamicResource Fg}"
         FontFamily="Segoe UI" ShowInTaskbar="False">
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -14,7 +14,7 @@
         <StackPanel>
             <TextBlock Text="Contacts" FontSize="36" FontWeight="Bold"/>
             <TextBlock Text="These appear, in this order, when the CONTACTS button is pressed. The first 6 can also be called with F1–F6. Incoming calls from these numbers show the name."
-                       FontSize="18" Foreground="#BBB" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                       FontSize="18" Foreground="{DynamicResource SubtleFg}" TextWrapping="Wrap" Margin="0,4,0,8"/>
         </StackPanel>
 
         <Grid Grid.Row="1">
@@ -24,7 +24,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- List -->
-            <ListBox x:Name="List" FontSize="26" Background="#262626" Foreground="White" BorderBrush="#555"
+            <ListBox x:Name="List" FontSize="26" Background="{DynamicResource ListBg}" Foreground="{DynamicResource Fg}" BorderBrush="{DynamicResource Border}"
                      BorderThickness="2" Margin="6" SelectionChanged="List_SelectionChanged"
                      HorizontalContentAlignment="Stretch">
                 <ListBox.ItemTemplate>
@@ -34,10 +34,10 @@
                                 <ColumnDefinition Width="40"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding Position}" Foreground="#FFD600" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Position}" Foreground="{DynamicResource HeadingFg}" FontWeight="Bold"/>
                             <StackPanel Grid.Column="1">
                                 <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding Number}" FontSize="18" Foreground="#AAA"/>
+                                <TextBlock Text="{Binding Number}" FontSize="18" Foreground="{DynamicResource SubtleFg}"/>
                             </StackPanel>
                         </Grid>
                     </DataTemplate>
@@ -51,22 +51,22 @@
                 <TextBlock Text="Phone number" Style="{StaticResource DlgLabel}"/>
                 <TextBox x:Name="NumberBox" Style="{StaticResource DlgText}" MaxLength="24" TextChanged="Editor_TextChanged"/>
                 <TextBlock Text="10 digits for US numbers (e.g. 941 555 1234). Start international numbers with +."
-                           FontSize="16" Foreground="#999" TextWrapping="Wrap" Margin="6,0,6,10"/>
+                           FontSize="16" Foreground="{DynamicResource SubtleFg}" TextWrapping="Wrap" Margin="6,0,6,10"/>
 
                 <UniformGrid Columns="2">
-                    <Button x:Name="AddButton" Content="＋ Add new" Style="{StaticResource DlgButton}" Background="#1E4C9A" Click="Add_Click"/>
-                    <Button x:Name="DeleteButton" Content="✖ Delete" Style="{StaticResource DlgButton}" Background="#7A1F1F" Click="Delete_Click"/>
+                    <Button x:Name="AddButton" Content="＋ Add new" Style="{StaticResource DlgButton}" Background="#1E4C9A" Foreground="White" Click="Add_Click"/>
+                    <Button x:Name="DeleteButton" Content="✖ Delete" Style="{StaticResource DlgButton}" Background="#7A1F1F" Foreground="White" Click="Delete_Click"/>
                     <Button x:Name="UpButton" Content="▲ Move up" Style="{StaticResource DlgButton}" Click="Up_Click"/>
                     <Button x:Name="DownButton" Content="▼ Move down" Style="{StaticResource DlgButton}" Click="Down_Click"/>
                 </UniformGrid>
 
-                <TextBlock x:Name="ErrorText" FontSize="20" Foreground="#FF8A80" TextWrapping="Wrap" Margin="6,10"/>
+                <TextBlock x:Name="ErrorText" FontSize="20" Foreground="{DynamicResource ErrorFg}" TextWrapping="Wrap" Margin="6,10"/>
             </StackPanel>
         </Grid>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
             <Button Content="Cancel" Style="{StaticResource DlgButton}" MinWidth="180" Click="Cancel_Click" IsCancel="True"/>
-            <Button Content="✔ Save" Style="{StaticResource DlgButton}" MinWidth="220" Background="#1B8E3A" Click="Save_Click"/>
+            <Button Content="✔ Save" Style="{StaticResource DlgButton}" MinWidth="220" Background="#1B8E3A" Foreground="White" Click="Save_Click"/>
         </StackPanel>
     </Grid>
 </Window>

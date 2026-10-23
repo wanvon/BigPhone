@@ -19,8 +19,21 @@ public partial class MainWindow : Window
     static readonly Brush IncomingA = new SolidColorBrush(Color.FromRgb(0x0D, 0x3B, 0x66));
     static readonly Brush IncomingB = new SolidColorBrush(Color.FromRgb(0x1B, 0x6E, 0x2E));
     static readonly Brush MutedBrush = new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
-    static readonly Brush UnmutedBrush = new SolidColorBrush(Color.FromRgb(0x44, 0x44, 0x44));
-    static readonly Brush RecentsBrush = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A));
+
+    /// <summary>A neutral (themed) button, or a coloured one with white text.</summary>
+    static void Paint(Button b, Brush? colored)
+    {
+        if (colored == null)
+        {
+            b.SetResourceReference(Control.BackgroundProperty, "NeutralBg");
+            b.SetResourceReference(Control.ForegroundProperty, "NeutralFg");
+        }
+        else
+        {
+            b.Background = colored;
+            b.Foreground = Brushes.White;
+        }
+    }
 
     readonly PhoneSettings _settings;
     readonly SipPhone _phone;
@@ -154,6 +167,48 @@ public partial class MainWindow : Window
         try { _voice?.SpeakAsyncCancelAll(); _voice?.SpeakAsync(text); } catch { }
     }
 
+    // ================================================================ one text size for all labelled buttons
+
+    /// <summary>Every label (including the longest one each button can show) must fit; the smallest fit wins.</summary>
+    static readonly (string button, string[] labels)[] LabelSets =
+    {
+        ("CallButton",     new[] { "📞 CALL", "↻ REDIAL" }),
+        ("HangUpButton",   new[] { "HANG UP", "CLEAR" }),
+        ("MuteButton",     new[] { "UNMUTE", "MUTE" }),
+        ("ContactsButton", new[] { "👤\nCONTACTS" }),
+        ("RecentsButton",  new[] { "🕘\nRECENTS", "🕘\n9+ MISSED" }),
+        ("TextsButton",    new[] { "💬\nTEXTS", "💬\n9+ NEW TEXTS" }),
+    };
+
+    bool _fontPending;
+
+    void MainScreen_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_fontPending) return;
+        _fontPending = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => { _fontPending = false; UpdateButtonFont(); });
+    }
+
+    void UpdateButtonFont()
+    {
+        var typeface = new Typeface(FontFamily, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
+        double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        double best = 80;
+        foreach (var (name, labels) in LabelSets)
+        {
+            if (FindName(name) is not Button b || b.ActualWidth < 20 || b.Visibility != Visibility.Visible) continue;
+            double availW = b.ActualWidth - 8 - 20 - 8;    // border + content margin + breathing room
+            double availH = b.ActualHeight - 8 - 12 - 8;
+            foreach (var label in labels)
+            {
+                var ft = new FormattedText(label, System.Globalization.CultureInfo.CurrentUICulture,
+                                           FlowDirection.LeftToRight, typeface, 100, Brushes.Black, dpi);
+                best = Math.Min(best, Math.Min(100 * availW / ft.Width, 100 * availH / ft.Height));
+            }
+        }
+        Resources["ButtonFont"] = Math.Clamp(Math.Floor(best), 14, 80);
+    }
+
     void UpdateCaret()
     {
         bool show = IsActive && (_state == UiState.Idle || _state == UiState.InCall);
@@ -187,10 +242,10 @@ public partial class MainWindow : Window
         CallButton.IsEnabled = idle;
         CallButtonText.Text = idle && _number.Length == 0 && _settings.LastNumber.Length > 0 ? "↻ REDIAL" : "📞 CALL";
         HangUpText.Text = idle ? "CLEAR" : "HANG UP";
-        HangUpButton.Background = idle ? UnmutedBrush : MutedBrush;
+        Paint(HangUpButton, idle ? null : MutedBrush);
         MuteButton.IsEnabled = _state == UiState.InCall;
         MuteText.Text = _phone?.IsMuted == true ? "UNMUTE" : "MUTE";
-        MuteButton.Background = _phone?.IsMuted == true ? MutedBrush : UnmutedBrush;
+        Paint(MuteButton, _phone?.IsMuted == true ? MutedBrush : null);
         ContactsButton.IsEnabled = idle;
         TextsButton.IsEnabled = idle;
         RecentsButton.IsEnabled = idle;
@@ -442,7 +497,8 @@ public partial class MainWindow : Window
         if (_state != UiState.Idle) return;
         var items = _contacts.Select(c => new PickItem
         {
-            Title = c.Name, Detail = FormatNumber(c.Number), Number = c.Number, CallName = c.Name, Background = PickItem.Blue
+            Title = c.Name, Detail = FormatNumber(c.Number), Number = c.Number, CallName = c.Name,
+            Background = Theme.Get("ContactsBg"), Foreground = Theme.Get("ContactsFg")
         });
         await PickAndCallAsync("Who do you want to call?", items, "No contacts yet. Your helper can add them with ⚙ → Contacts.");
     }
@@ -462,7 +518,9 @@ public partial class MainWindow : Window
                 Number = r.Number,
                 CallName = name,
                 Background = r.Kind is CallKind.Missed or CallKind.Declined ? PickItem.Red
-                           : r.Kind == CallKind.Incoming ? PickItem.Blue : PickItem.Gray,
+                           : r.Kind == CallKind.Incoming ? Theme.Get("KeyBg") : Theme.Get("NeutralBg"),
+                Foreground = r.Kind is CallKind.Missed or CallKind.Declined ? Brushes.White
+                           : r.Kind == CallKind.Incoming ? Theme.Get("KeyFg") : Theme.Get("NeutralFg"),
             };
         });
         await PickAndCallAsync("Recent calls – tap to call back", items, "No calls yet.");
@@ -513,8 +571,8 @@ public partial class MainWindow : Window
         TextsButton.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
         TextsRow.Height = on ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
         int unread = TextStore.Unread;
-        TextsText.Text = unread == 1 ? "1 NEW TEXT" : unread > 1 ? $"{unread} NEW TEXTS" : "TEXTS";
-        TextsButton.Background = unread > 0 ? NewTextBrush : RecentsBrush;
+        TextsText.Text = unread == 1 ? "1 NEW TEXT" : unread > 9 ? "9+ NEW TEXTS" : unread > 1 ? $"{unread} NEW TEXTS" : "TEXTS";
+        Paint(TextsButton, unread > 0 ? NewTextBrush : null);
     }
 
     string WhoSent(TextMessage m)
@@ -585,7 +643,8 @@ public partial class MainWindow : Window
             {
                 Title = (m.Read ? "" : "● ") + WhoSent(m),
                 Detail = $"{m.Time:ddd h:mm tt}  ·  {preview}",
-                Background = m.Read ? PickItem.Gray : PickItem.Green,
+                Background = m.Read ? Theme.Get("NeutralBg") : PickItem.Green,
+                Foreground = m.Read ? Theme.Get("NeutralFg") : Brushes.White,
                 Tag = m,
             };
         });
@@ -615,8 +674,8 @@ public partial class MainWindow : Window
     void UpdateRecentsBadge()
     {
         int missed = RecentCalls.UnseenMissed;
-        RecentsText.Text = missed > 0 ? $"{missed} MISSED" : "RECENTS";
-        RecentsButton.Background = missed > 0 ? MutedBrush : RecentsBrush;
+        RecentsText.Text = missed > 9 ? "9+ MISSED" : missed > 0 ? $"{missed} MISSED" : "RECENTS";
+        Paint(RecentsButton, missed > 0 ? MutedBrush : null);
     }
 
     // ---- call history
@@ -698,29 +757,36 @@ public partial class MainWindow : Window
         var panel = new StackPanel { Margin = new Thickness(20) };
         panel.Children.Add(new TextBlock
         {
-            Text = $"Big Phone {Updater.CurrentVersionText}  ({mode})", FontSize = 18, Foreground = Brushes.LightGray,
+            Text = $"Big Phone {Updater.CurrentVersionText}  ({mode})", FontSize = 18,
             Margin = new Thickness(6, 0, 6, 10)
         });
         var menu = new Window
         {
             Title = "Big Phone – Menu", Content = panel, Width = 460, SizeToContent = SizeToContent.Height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, ResizeMode = ResizeMode.NoResize,
-            Background = new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A)), ShowInTaskbar = false
+            ShowInTaskbar = false
         };
+        menu.SetResourceReference(Window.BackgroundProperty, "Surface");
+        ((TextBlock)panel.Children[0]).SetResourceReference(TextBlock.ForegroundProperty, "SubtleFg");
 
-        void Item(string text, string color, Action action)
+        void Item(string text, bool highlight, Action action)
         {
-            var b = new Button { Content = text, Style = (Style)FindResource("DlgButton"), Background = (Brush)new BrushConverter().ConvertFrom(color)! };
+            var b = new Button { Content = text, Style = (Style)FindResource("DlgButton") };
+            if (highlight)
+            {
+                b.SetResourceReference(Control.BackgroundProperty, "ContactsBg");
+                b.SetResourceReference(Control.ForegroundProperty, "ContactsFg");
+            }
             b.Click += (_, _) => { menu.Close(); action(); };
             panel.Children.Add(b);
         }
 
         WindowMemory.Remember(menu, "Menu");
-        Item("👤  Contacts", "#1E4C9A", OpenContacts);
-        Item("🔧  Settings", "#3A3A3A", OpenSettings);
-        Item("⟳  Check for updates", "#3A3A3A", async () => await CheckForUpdatesInteractiveAsync());
-        Item("📝  Advanced (settings file)", "#3A3A3A", async () => await EditSettingsFileAsync());
-        Item("Close", "#2A2A2A", () => { });
+        Item("👤  Contacts", true, OpenContacts);
+        Item("🔧  Settings", false, OpenSettings);
+        Item("⟳  Check for updates", false, async () => await CheckForUpdatesInteractiveAsync());
+        Item("📝  Advanced (settings file)", false, async () => await EditSettingsFileAsync());
+        Item("Close", false, () => { });
         ShowHelperWindow(menu);
     }
 
