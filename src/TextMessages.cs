@@ -227,6 +227,8 @@ public sealed class TextWatcher : IDisposable
             }
             text.Read = firstRun;   // history from before Big Phone was set up doesn't pop up
             result.Add(text);
+            Log.Write($"Text received: from {text.From}, sent {text.Time:yyyy-MM-dd HH:mm}, {text.Text.Length} chars, " +
+                      (text.Code.Length > 0 ? "contains a code" : "no code") + (firstRun ? " (history, marked read)" : ""));
         }
         if (firstRun && inbox.UidNext is { } next) newLast = Math.Max(newLast, next.Id - 1);
         await client.DisconnectAsync(true);

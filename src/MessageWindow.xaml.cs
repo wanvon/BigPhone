@@ -63,10 +63,13 @@ public partial class MessageWindow : Window
         BodyText.FontSize = Math.Clamp(size, 28, 110);
     }
 
+    string Audit => $"text from {_msg.From} sent {_msg.Time:yyyy-MM-dd HH:mm}";
+
     void CopyCode_Click(object sender, RoutedEventArgs e)
     {
         if (CopyToClipboard(_msg.Code))
         {
+            Log.Write($"Code copied to clipboard ({Audit})");
             Flash(CopyCodeText, "✔ COPIED!", "📋 COPY CODE");
             _say("Code copied. You can paste it now.");
         }
@@ -74,17 +77,23 @@ public partial class MessageWindow : Window
 
     void CopyText_Click(object sender, RoutedEventArgs e)
     {
-        if (CopyToClipboard(_msg.Text)) Flash(CopyTextText, "✔ COPIED!", "📋 COPY TEXT");
+        if (CopyToClipboard(_msg.Text))
+        {
+            Log.Write($"Text copied to clipboard ({Audit})");
+            Flash(CopyTextText, "✔ COPIED!", "📋 COPY TEXT");
+        }
     }
 
     void Read_Click(object sender, RoutedEventArgs e)
     {
+        Log.Write($"Text read aloud ({Audit})");
         string code = _msg.Code;
         _say($"Text from {_who}. {_msg.Text}" + (code.Length > 0 ? $". The code is {string.Join(" ", code.ToCharArray())}." : ""));
     }
 
     void CallBack_Click(object sender, RoutedEventArgs e)
     {
+        Log.Write($"Call back pressed ({Audit})");
         CallBackRequested = true;
         DialogResult = true;
     }

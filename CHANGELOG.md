@@ -3,6 +3,12 @@
 All notable changes to Big Phone. Versions follow `MAJOR.MINOR.PATCH`;
 each release is tagged `vX.Y.Z` on GitHub and installed copies update themselves.
 
+## 1.2.2 - 2026-10-22
+
+- Audit trail in bigphone.log for texts: each text received (sender, time sent, whether it holds a code),
+  opened (by hand or automatically), code copied, text copied, read aloud, call back. Message text and
+  codes are never written to the log.
+
 ## 1.2.1 - 2026-10-22
 
 - Texts: handle FlyNumber's real email layout ("From" / number / "To" / number / message), so only the

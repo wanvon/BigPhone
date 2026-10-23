@@ -482,7 +482,7 @@ public partial class MainWindow : Window
         {
             if (WindowState == WindowState.Minimized) WindowState = WindowState.Maximized;
             Activate();
-            _ = ShowMessage(newest);
+            _ = ShowMessage(newest, popUp: true);
         }
     }
 
@@ -506,8 +506,9 @@ public partial class MainWindow : Window
         if (chosen?.Tag is TextMessage msg) await ShowMessage(msg);
     }
 
-    async Task ShowMessage(TextMessage msg)
+    async Task ShowMessage(TextMessage msg, bool popUp = false)
     {
+        Log.Write($"Text opened{(popUp ? " automatically" : "")}: from {msg.From} sent {msg.Time:yyyy-MM-dd HH:mm}");
         TextStore.MarkRead(msg);
         UpdateTextsBadge();
         CloseHelperWindow();
