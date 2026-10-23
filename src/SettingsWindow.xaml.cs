@@ -43,6 +43,7 @@ public partial class SettingsWindow : Window
         TextsEnabledBox.IsChecked = settings.TextsEnabled;
         PopUpTextsBox.IsChecked = settings.PopUpNewTexts;
         SpeakTextsBox.IsChecked = settings.SpeakNewTexts;
+        ChimeTextsBox.IsChecked = settings.ChimeNewTexts;
         ImapUserBox.Text = settings.ImapUser;
         ImapHostBox.Text = settings.ImapHost;
         foreach (var p in Providers) ProviderBox.Items.Add(p.Name);
@@ -208,6 +209,8 @@ public partial class SettingsWindow : Window
     static string DeviceValue(ComboBox box) =>
         box.SelectedItem is string s && s != DefaultDevice ? s : "";
 
+    void TestChime_Click(object sender, RoutedEventArgs e) => Chime.Play(SipPhone.FindOutputDevice(DeviceValue(RingBox)), soft: false);
+
     void TestOutput_Click(object sender, RoutedEventArgs e) => PlayTest(DeviceValue(OutputBox));
     void TestRing_Click(object sender, RoutedEventArgs e) => PlayTest(DeviceValue(RingBox));
 
@@ -239,6 +242,7 @@ public partial class SettingsWindow : Window
         _settings.TextsEnabled = TextsEnabledBox.IsChecked == true;
         _settings.PopUpNewTexts = PopUpTextsBox.IsChecked == true;
         _settings.SpeakNewTexts = SpeakTextsBox.IsChecked == true;
+        _settings.ChimeNewTexts = ChimeTextsBox.IsChecked == true;
         if (GoogleSelected)
         {
             _settings.ImapAuth = "google";

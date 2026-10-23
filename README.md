@@ -112,6 +112,9 @@ When a text arrives (checked every 20 s), it opens full screen unless a call is 
 aloud if enabled. If it contains a one-time code, the code is shown in large digits with a
 **📋 COPY CODE** button (Ctrl+C also works). Texts are kept in `texts.json` (last 100).
 
+To check the alerts without waiting for a real text, start `BigPhone.exe --test-text` (e.g. from a
+shortcut or Win+R). Ten seconds later a pretend text with code 123456 arrives (it isn't saved).
+
 Limits: **sending texts isn't possible** from Big Phone. FlyNumber only allows sending from its web panel,
 and doesn't yet allow texting US numbers at all. Outlook.com / Hotmail can't be used (no app passwords).
 

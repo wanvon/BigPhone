@@ -77,6 +77,7 @@ public partial class App : Application
         MainWindow = main;
         ShutdownMode = ShutdownMode.OnMainWindowClose;
         main.Show();
+        if (e.Args.Contains("--test-text")) main.SimulateTextSoon();   // helper test: chime, voice, pop-up over other windows
     }
 
     public static void EditSettingsFileAndWait()

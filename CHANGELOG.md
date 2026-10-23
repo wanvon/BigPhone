@@ -3,6 +3,14 @@
 All notable changes to Big Phone. Versions follow `MAJOR.MINOR.PATCH`;
 each release is tagged `vX.Y.Z` on GitHub and installed copies update themselves.
 
+## 1.2.4 - 2026-10-22
+
+- New texts play a two-note **chime** on the ring device (soft during calls), then the spoken announcement.
+  Can be turned off / tested in Settings → Text messages.
+- New texts **force Big Phone to the front**, like incoming calls, even when another program is in front.
+- Helper test: `BigPhone.exe --test-text` pretends a text arrives 10 s after start (not saved), to check the
+  chime, voice, pop-up and COPY CODE.
+
 ## 1.2.3 - 2026-10-22
 
 - Blinking cursor in the number field while Big Phone has keyboard focus, as a cue that typing goes there.

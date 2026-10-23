@@ -303,12 +303,7 @@ public partial class MainWindow : Window
         _flash.Start();
         UpdateButtons();
 
-        // Bring the window to the front even if minimized or behind other windows.
-        if (WindowState == WindowState.Minimized) WindowState = WindowState.Maximized;
-        Show();
-        Activate();
-        Topmost = true;
-        Topmost = false;
+        BringToFront();
 
         if (_settings.SpeakCallerName)
         {
@@ -488,19 +483,49 @@ public partial class MainWindow : Window
     {
         UpdateTextsBadge();
         var newest = msgs.OrderByDescending(m => m.Time).First();
-        if (_state != UiState.Idle) return;   // never interrupt a call; the green TEXTS button shows it
+        bool busy = _state != UiState.Idle;
+        if (_settings.ChimeNewTexts) Chime.Play(SipPhone.FindOutputDevice(_settings.RingDevice), soft: busy);
+        if (busy) return;   // never interrupt a call; the soft chime and green TEXTS button tell about it
 
+        if (_settings.PopUpNewTexts) BringToFront();
         if (_settings.SpeakNewTexts)
         {
             string code = newest.Code;
-            Say($"New text from {WhoSent(newest)}." + (code.Length > 0 ? $" The code is {string.Join(" ", code.ToCharArray())}." : ""));
+            string words = $"New text from {WhoSent(newest)}." + (code.Length > 0 ? $" The code is {string.Join(" ", code.ToCharArray())}." : "");
+            // let the chime finish first
+            var wait = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_settings.ChimeNewTexts ? 1100 : 0) };
+            wait.Tick += (_, _) => { wait.Stop(); if (_state == UiState.Idle) Say(words); };
+            wait.Start();
         }
         if (_settings.PopUpNewTexts && _helperWindow == null)
-        {
-            if (WindowState == WindowState.Minimized) WindowState = WindowState.Maximized;
-            Activate();
             _ = ShowMessage(newest, popUp: true);
-        }
+    }
+
+    /// <summary>Helper test (BigPhone.exe --test-text): a pretend text arrives 10 s after start. Not saved.</summary>
+    public void SimulateTextSoon()
+    {
+        var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+        t.Tick += (_, _) =>
+        {
+            t.Stop();
+            Log.Write("Simulated text (--test-text)");
+            OnNewTexts(new List<TextMessage> { new() { Time = DateTime.Now, From = "Big Phone test", Text = "This is a test text. Your code is 123456." } });
+        };
+        t.Start();
+    }
+
+    /// <summary>
+    /// Brings Big Phone in front of other programs, even if minimized. Windows normally blocks apps from stealing
+    /// the foreground; briefly becoming "always on top" gets around that for the moments that matter.
+    /// </summary>
+    void BringToFront()
+    {
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Maximized;
+        Show();
+        Activate();
+        Topmost = true;
+        Topmost = false;
+        Focus();
     }
 
     async void Texts_Click(object sender, RoutedEventArgs e)

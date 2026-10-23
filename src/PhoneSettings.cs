@@ -63,7 +63,8 @@ public class PhoneSettings
     public string GoogleClientSecretProtected { get; set; } = "";
     public int TextsPollSeconds { get; set; } = 20;
     public bool PopUpNewTexts { get; set; } = true;          // open new texts full screen when not on a call
-    public bool SpeakNewTexts { get; set; } = true;          // "New text from 12345. The code is 4 8 2 9 1 3"
+    public bool SpeakNewTexts { get; set; } = true;
+    public bool ChimeNewTexts { get; set; } = true;          // "ding-dong" on the ring device (soft during calls)          // "New text from 12345. The code is 4 8 2 9 1 3"
 
     public List<SpeedDial> SpeedDials { get; set; } = new();
 
