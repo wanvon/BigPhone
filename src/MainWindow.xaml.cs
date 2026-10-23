@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     readonly DispatcherTimer _resetStatus = new() { Interval = TimeSpan.FromSeconds(4) };
     readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromMinutes(10) };
     readonly DispatcherTimer _caretBlink = new() { Interval = TimeSpan.FromMilliseconds(530) };
+    WindowState _restoreState = WindowState.Maximized;   // what to return to after being minimized
     readonly DateTime _startedAt = DateTime.Now;
     DateTime _lastUpdateCheck = DateTime.MinValue;
 
@@ -49,6 +50,8 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _settings = settings;
+        WindowMemory.Remember(this, "Main");
+        StateChanged += (_, _) => { if (WindowState != WindowState.Minimized) _restoreState = WindowState; };
         Title = $"Big Phone {Updater.CurrentVersionText}";
 
         ReloadSpeedDials();
@@ -562,7 +565,7 @@ public partial class MainWindow : Window
     /// </summary>
     void BringToFront()
     {
-        if (WindowState == WindowState.Minimized) WindowState = WindowState.Maximized;
+        if (WindowState == WindowState.Minimized) WindowState = _restoreState;   // back to its own size, not forced full screen
         Show();
         Activate();
         Topmost = true;
@@ -711,6 +714,7 @@ public partial class MainWindow : Window
             panel.Children.Add(b);
         }
 
+        WindowMemory.Remember(menu, "Menu");
         Item("👤  Contacts", "#1E4C9A", OpenContacts);
         Item("🔧  Settings", "#3A3A3A", OpenSettings);
         Item("⟳  Check for updates", "#3A3A3A", async () => await CheckForUpdatesInteractiveAsync());

@@ -25,14 +25,18 @@
             <!-- Status banner -->
             <Border x:Name="StatusBar" Grid.Row="0" Background="#7A1F1F" CornerRadius="16" Margin="8">
                 <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
                     <Viewbox Margin="20,6" StretchDirection="DownOnly">
                         <TextBlock x:Name="StatusText" Text="Starting…" FontSize="72" FontWeight="Bold"/>
                     </Viewbox>
-                    <Button x:Name="SettingsButton" Content="⚙" ToolTip="Settings (for the helper)"
-                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
-                            Width="40" Height="40" FontSize="22" Focusable="False"
-                            Background="Transparent" Foreground="#AAFFFFFF" BorderThickness="0"
-                            Click="Settings_Click"/>
+                    <!-- Settings menu: a real button at the end of the status bar, clearly visible but out of the way -->
+                    <Button x:Name="SettingsButton" Grid.Column="1" Style="{StaticResource Big}" Width="120" Margin="4"
+                            Background="#33000000" ToolTip="Settings menu (Contacts, Settings, Updates)" Click="Settings_Click">
+                        <TextBlock Text="⚙" FontWeight="Normal"/>
+                    </Button>
                 </Grid>
             </Border>
 

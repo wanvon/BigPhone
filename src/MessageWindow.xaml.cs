@@ -18,6 +18,7 @@ public partial class MessageWindow : Window
     public MessageWindow(TextMessage msg, string who, Action<string> say)
     {
         InitializeComponent();
+        WindowMemory.Remember(this, "Message");
         _msg = msg;
         _who = who;
         _say = say;

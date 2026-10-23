@@ -30,6 +30,7 @@ public partial class ContactsWindow : Window
     public ContactsWindow(PhoneSettings settings)
     {
         InitializeComponent();
+        WindowMemory.Remember(this, "Contacts");
         _settings = settings;
         foreach (var sd in settings.SpeedDials)
             if (!string.IsNullOrWhiteSpace(sd.Name) || !string.IsNullOrWhiteSpace(sd.Number))

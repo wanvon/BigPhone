@@ -3,6 +3,15 @@
 All notable changes to Big Phone. Versions follow `MAJOR.MINOR.PATCH`;
 each release is tagged `vX.Y.Z` on GitHub and installed copies update themselves.
 
+## 1.2.6 - 2026-10-23
+
+- Every Big Phone window (phone, Contacts/Recents/Texts lists, text message, Settings, Contacts editor,
+  ⚙ menu) reopens at its last size and position, maximized or not, on the same monitor. Until a window
+  has been closed once it opens as before (full screen for the phone and lists). Positions that would be
+  off-screen (e.g. a monitor was unplugged) are ignored.
+- A minimized Big Phone that pops up for a call or text returns to its own size instead of full screen.
+- The ⚙ settings button is now a large, clearly visible button at the right end of the status bar.
+
 ## 1.2.5 - 2026-10-23
 
 - Paste a phone number into the number field: **Ctrl+V** (or Shift+Insert), or right-click the number

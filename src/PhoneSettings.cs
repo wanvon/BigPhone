@@ -68,6 +68,9 @@ public class PhoneSettings
 
     public List<SpeedDial> SpeedDials { get; set; } = new();
 
+    // Last size/position of each window (managed by WindowMemory).
+    public Dictionary<string, WindowPlace> Windows { get; set; } = new();
+
     // ------------------------------------------------------------------
 
     /// <summary>

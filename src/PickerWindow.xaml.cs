@@ -41,6 +41,7 @@ public partial class PickerWindow : Window
     public PickerWindow(string header, IEnumerable<PickItem> items, string emptyMessage)
     {
         InitializeComponent();
+        WindowMemory.Remember(this, "List");
         Title = $"Big Phone – {header}";
         HeaderText.Text = header;
         EmptyText.Text = emptyMessage;

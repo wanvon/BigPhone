@@ -8,6 +8,9 @@ public partial class App : Application
 {
     Mutex? _single;
 
+    /// <summary>The loaded settings, for windows that remember their size and position.</summary>
+    public static PhoneSettings? Settings { get; private set; }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -73,6 +76,7 @@ public partial class App : Application
             settings.Save();
         }
 
+        Settings = settings;
         var main = new MainWindow(settings, password);
         MainWindow = main;
         ShutdownMode = ShutdownMode.OnMainWindowClose;

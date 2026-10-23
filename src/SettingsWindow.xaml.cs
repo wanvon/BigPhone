@@ -19,6 +19,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow(PhoneSettings settings)
     {
         InitializeComponent();
+        WindowMemory.Remember(this, "Settings");
         _settings = settings;
         _stopTest.Tick += (_, _) => StopTest();
         Closed += (_, _) => StopTest();
