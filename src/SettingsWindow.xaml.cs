@@ -34,6 +34,7 @@ public partial class SettingsWindow : Window
         SpeakStatusBox.IsChecked = settings.SpeakStatus;
         USCodeBox.IsChecked = settings.AddUSCountryCode;
         AutoUpdateBox.IsChecked = settings.AutoUpdate;
+        KeepRunningBox.IsChecked = settings.KeepRunning;
 
         int[] choices = { 0, 3, 5, 10, 15, 20, 30 };
         foreach (int s in choices.Union(new[] { settings.AutoAnswerSeconds }).OrderBy(x => x))
@@ -239,6 +240,7 @@ public partial class SettingsWindow : Window
         _settings.SpeakStatus = SpeakStatusBox.IsChecked == true;
         _settings.AddUSCountryCode = USCodeBox.IsChecked == true;
         _settings.AutoUpdate = AutoUpdateBox.IsChecked == true;
+        _settings.KeepRunning = KeepRunningBox.IsChecked == true;
         _settings.AutoAnswerSeconds = AutoAnswerBox.SelectedItem is ComboBoxItem { Tag: int s } ? s : 0;
         _settings.TextsEnabled = TextsEnabledBox.IsChecked == true;
         _settings.PopUpNewTexts = PopUpTextsBox.IsChecked == true;

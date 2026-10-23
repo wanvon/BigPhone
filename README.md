@@ -24,7 +24,8 @@ works with any standard SIP/UDP provider.
    - Otherwise Notepad opens `settings.json`: fill in `Username` (and `AuthId`), save and close Notepad.
 4. Type the SIP password when asked. It's stored encrypted (Windows DPAPI) for that Windows user.
 5. Add contacts: ⚙ → **Contacts**.
-6. Optional: start with Windows: press `Win+R`, type `shell:startup`, and put a shortcut to `BigPhone.exe` there.
+6. On the user's PC: ⚙ → **Settings → Startup** → tick *Start Big Phone with Windows and restart it if
+   it closes* (a scheduled task checks every 5 minutes). Also set Windows **Sleep → Never** when plugged in.
 
 Call history is kept in `recents.json` (last 100 calls) next to `settings.json`.
 

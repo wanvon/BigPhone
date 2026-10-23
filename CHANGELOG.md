@@ -3,6 +3,14 @@
 All notable changes to Big Phone. Versions follow `MAJOR.MINOR.PATCH`;
 each release is tagged `vX.Y.Z` on GitHub and installed copies update themselves.
 
+## 1.3.0 - 2026-10-23
+
+- **Keep Big Phone running** (⚙ → Settings → Startup): creates a Windows scheduled task for the current
+  user (no admin needed) that starts Big Phone at log-on and every 5 minutes restarts it if it was closed
+  or crashed. Works on battery; self-updates keep working. Turning the setting off removes the task.
+  Replaces the Startup-folder shortcut.
+- "Turn the phone off?" warns when Big Phone will start again by itself.
+
 ## 1.2.6 - 2026-10-23
 
 - Every Big Phone window (phone, Contacts/Recents/Texts lists, text message, Settings, Contacts editor,

@@ -767,6 +767,7 @@ public partial class MainWindow : Window
                 _ringer = new Ringer(SipPhone.FindOutputDevice(_settings.RingDevice));
             }
             FlashStatus("✔ Settings saved", ReadyBrush);
+            _ = Task.Run(() => KeepAlive.Sync(_settings));
             StartTextWatcher();
             UpdateTextsBadge();
         };
@@ -844,7 +845,10 @@ public partial class MainWindow : Window
     {
         if (!_confirmedClose)
         {
-            var r = MessageBox.Show(this, "Turn the phone off?\n\nYou will NOT get calls while it is off.",
+            string again = _settings.KeepRunning
+                ? "\n\nBig Phone will start again by itself within 5 minutes.\n(To stop that: ⚙ → Settings → Startup.)"
+                : "";
+            var r = MessageBox.Show(this, "Turn the phone off?\n\nYou will NOT get calls while it is off." + again,
                 "Big Phone", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
             if (r != MessageBoxResult.Yes) { e.Cancel = true; return; }
             _confirmedClose = true;

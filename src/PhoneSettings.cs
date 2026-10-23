@@ -50,7 +50,8 @@ public class PhoneSettings
 
     // --- Updates (GitHub Releases) ---
     public string UpdateRepo { get; set; } = "wanvon/BigPhone";
-    public bool AutoUpdate { get; set; } = true;            // installs only at startup or 2-5 AM, never during a call
+    public bool AutoUpdate { get; set; } = true;
+    public bool KeepRunning { get; set; } = false;          // scheduled task: start at log-on, restart within 5 min if closed            // installs only at startup or 2-5 AM, never during a call
 
     // --- Text messages (read from FlyNumber's "New SMS" notification emails) ---
     public bool TextsEnabled { get; set; } = false;

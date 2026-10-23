@@ -107,6 +107,12 @@
                     <Button Grid.Column="1" Content="▶ Test" Style="{StaticResource DlgButton}" MinHeight="0" Padding="16,4" Click="TestChime_Click"/>
                 </Grid>
 
+                <TextBlock Text="STARTUP" FontSize="18" FontWeight="Bold" Foreground="#FFD600" Margin="6,24,6,0"/>
+                <CheckBox x:Name="KeepRunningBox" Style="{StaticResource DlgCheck}"
+                          Content="Start Big Phone with Windows and restart it if it closes"/>
+                <TextBlock FontSize="16" Foreground="#AAA" TextWrapping="Wrap" Margin="6,0,6,6"
+                           Text="Adds a Windows scheduled task that checks every 5 minutes. Use this on the user's PC; leave it off on a helper's PC. (A Startup-folder shortcut is then not needed.)"/>
+
                 <TextBlock Text="UPDATES" FontSize="18" FontWeight="Bold" Foreground="#FFD600" Margin="6,24,6,0"/>
                 <CheckBox x:Name="AutoUpdateBox" Style="{StaticResource DlgCheck}" Content="Install updates automatically (only when not on a call)"/>
 

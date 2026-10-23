@@ -16,6 +16,26 @@ public partial class App : Application
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
+        // Keep-alive task: "BigPhone.exe --ensure" starts Big Phone only if it isn't already running.
+        if (e.Args.Contains("--ensure"))
+        {
+            if (Mutex.TryOpenExisting(@"Local\BigPhone.SingleInstance", out var running))
+            {
+                running.Dispose();
+            }
+            else
+            {
+                Log.Write("Keep-alive: Big Phone was not running - starting it");
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!)
+                {
+                    UseShellExecute = false,
+                    WorkingDirectory = System.IO.Path.GetDirectoryName(Environment.ProcessPath!)!,
+                });
+            }
+            Shutdown();
+            return;
+        }
+
         // After a self-update the old copy may still be closing: wait for it.
         _single = new Mutex(false, @"Local\BigPhone.SingleInstance");
         bool first;
@@ -77,6 +97,7 @@ public partial class App : Application
         }
 
         Settings = settings;
+        _ = Task.Run(() => KeepAlive.Sync(settings));   // make the scheduled task match the setting (and this folder)
         var main = new MainWindow(settings, password);
         MainWindow = main;
         ShutdownMode = ShutdownMode.OnMainWindowClose;
