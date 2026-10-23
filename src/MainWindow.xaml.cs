@@ -168,6 +168,7 @@ public partial class MainWindow : Window
         UpdateCaret();
         NumberText.Text = FormatNumber(_number);
         NumberHint.Visibility = _number.Length == 0 && _state == UiState.Idle ? Visibility.Visible : Visibility.Collapsed;
+        EraseButton.Visibility = _number.Length > 0 && _state == UiState.Idle ? Visibility.Visible : Visibility.Collapsed;
     }
 
     static string FormatNumber(string n)

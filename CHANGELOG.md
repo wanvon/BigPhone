@@ -3,6 +3,13 @@
 All notable changes to Big Phone. Versions follow `MAJOR.MINOR.PATCH`;
 each release is tagged `vX.Y.Z` on GitHub and installed copies update themselves.
 
+## 1.3.1 - 2026-10-23
+
+- New main-screen layout: the number field, keypad and CALL / CLEAR / MUTE form one dialer block of the same
+  width on the left; CONTACTS, RECENTS and TEXTS are equal-size buttons filling the full height on the right.
+- The ERASE button is replaced by a small ⌫ icon inside the number field (shown only when there is
+  something to erase). Backspace still works.
+
 ## 1.3.0 - 2026-10-23
 
 - **Keep Big Phone running** (⚙ → Settings → Startup): creates a Windows scheduled task for the current

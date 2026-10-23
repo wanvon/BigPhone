@@ -17,9 +17,7 @@
         <Grid x:Name="MainScreen" Margin="12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="1.1*"/>
-                <RowDefinition Height="1.1*"/>
-                <RowDefinition Height="4.6*"/>
-                <RowDefinition Height="1.7*"/>
+                <RowDefinition Height="7.4*"/>
             </Grid.RowDefinitions>
 
             <!-- Status banner -->
@@ -40,62 +38,106 @@
                 </Grid>
             </Border>
 
-            <!-- Number display + backspace -->
+            <!-- Body: dialer block on the left, people/history block on the right -->
             <Grid Grid.Row="1">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Border Background="White" CornerRadius="16" Margin="8">
-                    <!-- right-click: paste / copy / clear (also Ctrl+V, Ctrl+C) -->
-                    <Border.ContextMenu>
-                        <ContextMenu FontSize="32">
-                            <MenuItem Header="📋  Paste number" Click="PasteNumber_Click"/>
-                            <MenuItem Header="📋  Copy number" Click="CopyNumber_Click"/>
-                            <MenuItem Header="✖  Clear" Click="ClearNumber_Click"/>
-                        </ContextMenu>
-                    </Border.ContextMenu>
-                    <Viewbox Margin="20,4" StretchDirection="DownOnly" HorizontalAlignment="Center">
-                        <!-- number, then a blinking cursor (shown while the window has keyboard focus), then the hint when empty -->
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="NumberText" Text="" FontSize="96" FontWeight="Bold"
-                                       Foreground="Black" FontFamily="Consolas" VerticalAlignment="Center"/>
-                            <Rectangle x:Name="Caret" Width="9" Height="104" Fill="#1E4C9A" Margin="6,0,0,0"
-                                       VerticalAlignment="Center" Visibility="Hidden"/>
-                            <TextBlock x:Name="NumberHint" Text="Type a number or press CONTACTS"
-                                       Foreground="#777" FontSize="48" Margin="18,0,0,0" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Viewbox>
-                </Border>
-                <Button Grid.Column="1" Style="{StaticResource Big}" Width="200" Background="#5A4A00"
-                        Click="Backspace_Click" ToolTip="Erase last digit">
-                    <TextBlock Text="⌫ ERASE"/>
-                </Button>
-            </Grid>
-
-            <!-- Keypad + speed dial -->
-            <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="3*"/>
                     <ColumnDefinition Width="1.3*"/>
                 </Grid.ColumnDefinitions>
 
-                <UniformGrid Rows="4" Columns="3">
-                    <Button Style="{StaticResource Key}" Tag="1"><TextBlock Text="1"/></Button>
-                    <Button Style="{StaticResource Key}" Tag="2"><TextBlock Text="2"/></Button>
-                    <Button Style="{StaticResource Key}" Tag="3"><TextBlock Text="3"/></Button>
-                    <Button Style="{StaticResource Key}" Tag="4"><TextBlock Text="4"/></Button>
-                    <Button Style="{StaticResource Key}" Tag="5"><TextBlock Text="5"/></Button>
-                    <Button Style="{StaticResource Key}" Tag="6"><TextBlock Text="6"/></Button>
-                    <Button Style="{StaticResource Key}" Tag="7"><TextBlock Text="7"/></Button>
-                    <Button Style="{StaticResource Key}" Tag="8"><TextBlock Text="8"/></Button>
-                    <Button Style="{StaticResource Key}" Tag="9"><TextBlock Text="9"/></Button>
-                    <Button Style="{StaticResource Key}" Tag="*"><TextBlock Text="✱"/></Button>
-                    <Button Style="{StaticResource Key}" Tag="0"><TextBlock Text="0"/></Button>
-                    <Button Style="{StaticResource Key}" Tag="#"><TextBlock Text="#"/></Button>
-                </UniformGrid>
+                <!-- ===== Dialer: number field, keypad and call buttons, all the same width ===== -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="1.1*"/>
+                        <RowDefinition Height="4.6*"/>
+                        <RowDefinition Height="1.7*"/>
+                    </Grid.RowDefinitions>
 
-                <Grid Grid.Column="1">
+                    <!-- Number field with a small erase icon at its right end -->
+                    <Border Background="White" CornerRadius="16" Margin="8">
+                        <!-- right-click: paste / copy / clear (also Ctrl+V, Ctrl+C) -->
+                        <Border.ContextMenu>
+                            <ContextMenu FontSize="32">
+                                <MenuItem Header="📋  Paste number" Click="PasteNumber_Click"/>
+                                <MenuItem Header="📋  Copy number" Click="CopyNumber_Click"/>
+                                <MenuItem Header="✖  Clear" Click="ClearNumber_Click"/>
+                            </ContextMenu>
+                        </Border.ContextMenu>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Viewbox Margin="20,4" StretchDirection="DownOnly" HorizontalAlignment="Center">
+                                <!-- number, then a blinking cursor (shown while the window has keyboard focus), then the hint when empty -->
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="NumberText" Text="" FontSize="96" FontWeight="Bold"
+                                               Foreground="Black" FontFamily="Consolas" VerticalAlignment="Center"/>
+                                    <Rectangle x:Name="Caret" Width="9" Height="104" Fill="#1E4C9A" Margin="6,0,0,0"
+                                               VerticalAlignment="Center" Visibility="Hidden"/>
+                                    <TextBlock x:Name="NumberHint" Text="Type a number or press CONTACTS"
+                                               Foreground="#777" FontSize="48" Margin="18,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Viewbox>
+                            <Button x:Name="EraseButton" Grid.Column="1" Width="96" Margin="0,6,8,6" Focusable="False"
+                                    Cursor="Hand" Click="Backspace_Click" ToolTip="Erase last digit" Visibility="Collapsed">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" Background="#EDEDED" CornerRadius="12">
+                                            <Viewbox Margin="14,8">
+                                                <TextBlock Text="⌫" Foreground="#444"/>
+                                            </Viewbox>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#FFE680"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#D0D0D0"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <UniformGrid Grid.Row="1" Rows="4" Columns="3">
+                        <Button Style="{StaticResource Key}" Tag="1"><TextBlock Text="1"/></Button>
+                        <Button Style="{StaticResource Key}" Tag="2"><TextBlock Text="2"/></Button>
+                        <Button Style="{StaticResource Key}" Tag="3"><TextBlock Text="3"/></Button>
+                        <Button Style="{StaticResource Key}" Tag="4"><TextBlock Text="4"/></Button>
+                        <Button Style="{StaticResource Key}" Tag="5"><TextBlock Text="5"/></Button>
+                        <Button Style="{StaticResource Key}" Tag="6"><TextBlock Text="6"/></Button>
+                        <Button Style="{StaticResource Key}" Tag="7"><TextBlock Text="7"/></Button>
+                        <Button Style="{StaticResource Key}" Tag="8"><TextBlock Text="8"/></Button>
+                        <Button Style="{StaticResource Key}" Tag="9"><TextBlock Text="9"/></Button>
+                        <Button Style="{StaticResource Key}" Tag="*"><TextBlock Text="✱"/></Button>
+                        <Button Style="{StaticResource Key}" Tag="0"><TextBlock Text="0"/></Button>
+                        <Button Style="{StaticResource Key}" Tag="#"><TextBlock Text="#"/></Button>
+                    </UniformGrid>
+
+                    <!-- Call / Hang up / Mute, directly under the keypad -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="CallButton" Style="{StaticResource Big}" Background="#1B8E3A" Click="Call_Click">
+                            <TextBlock x:Name="CallButtonText" Text="📞 CALL"/>
+                        </Button>
+                        <Button x:Name="HangUpButton" Grid.Column="1" Style="{StaticResource Big}" Background="#C62828" Click="HangUp_Click">
+                            <TextBlock x:Name="HangUpText" Text="HANG UP"/>
+                        </Button>
+                        <Button x:Name="MuteButton" Grid.Column="2" Style="{StaticResource Big}" Background="#444" Click="Mute_Click">
+                            <TextBlock x:Name="MuteText" Text="MUTE"/>
+                        </Button>
+                    </Grid>
+                </Grid>
+
+                <!-- ===== People and history: equal-size buttons, full height ===== -->
+                <Grid Grid.Column="1" Margin="10,0,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition/>
                         <RowDefinition/>
@@ -123,24 +165,6 @@
                         </StackPanel>
                     </Button>
                 </Grid>
-            </Grid>
-
-            <!-- Call / Hang up / Mute -->
-            <Grid Grid.Row="3">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*"/>
-                    <ColumnDefinition Width="2*"/>
-                    <ColumnDefinition Width="1*"/>
-                </Grid.ColumnDefinitions>
-                <Button x:Name="CallButton" Style="{StaticResource Big}" Background="#1B8E3A" Click="Call_Click">
-                    <TextBlock x:Name="CallButtonText" Text="📞 CALL"/>
-                </Button>
-                <Button x:Name="HangUpButton" Grid.Column="1" Style="{StaticResource Big}" Background="#C62828" Click="HangUp_Click">
-                    <TextBlock x:Name="HangUpText" Text="HANG UP"/>
-                </Button>
-                <Button x:Name="MuteButton" Grid.Column="2" Style="{StaticResource Big}" Background="#444" Click="Mute_Click">
-                    <TextBlock x:Name="MuteText" Text="MUTE"/>
-                </Button>
             </Grid>
         </Grid>
 
