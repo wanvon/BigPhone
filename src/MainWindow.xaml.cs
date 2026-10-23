@@ -220,6 +220,48 @@ public partial class MainWindow : Window
         if (_state == UiState.InCall) _ = _phone.SendDtmfAsync(k);
     }
 
+    /// <summary>"+1 (941) 315-3095", "941.315.3095", "Call 941-315-3095 today" -> "+19413153095" / "9413153095".</summary>
+    static string CleanPastedNumber(string text)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(text ?? "", @"\+?[\d(][\d\s\-().*#]{2,}");
+        if (!m.Success) return "";
+        string s = m.Value.Trim();
+        string kept = new(s.Where(c => char.IsDigit(c) || c == '*' || c == '#').ToArray());
+        return (s.StartsWith('+') ? "+" : "") + kept;
+    }
+
+    void PasteNumber()
+    {
+        if (_state != UiState.Idle) return;
+        string text = "";
+        try { text = Clipboard.GetText(); } catch { }
+        string n = CleanPastedNumber(text);
+        if (PhoneSettings.DigitsOnly(n).Length < 3)
+        {
+            FlashStatus("Nothing to paste – copy a phone number first", ErrorBrush);
+            return;
+        }
+        _number = n.Length > 24 ? n[..24] : n;
+        UpdateNumber();
+        UpdateButtons();
+        Log.Write("Number pasted into the number field");
+    }
+
+    void CopyNumber()
+    {
+        if (_number.Length > 0 && MessageWindow.CopyToClipboard(_number)) FlashStatus("✔ Number copied", ReadyBrush);
+    }
+
+    void PasteNumber_Click(object sender, RoutedEventArgs e) => PasteNumber();
+    void CopyNumber_Click(object sender, RoutedEventArgs e) => CopyNumber();
+    void ClearNumber_Click(object sender, RoutedEventArgs e)
+    {
+        if (_state != UiState.Idle) return;
+        _number = "";
+        UpdateNumber();
+        UpdateButtons();
+    }
+
     void Backspace()
     {
         if (_state != UiState.Idle || _number.Length == 0) return;
@@ -768,6 +810,11 @@ public partial class MainWindow : Window
                 PressKey('#'); break;
             case Key.Back:
                 Backspace(); break;
+            case Key.V when Keyboard.Modifiers.HasFlag(ModifierKeys.Control):
+            case Key.Insert when shift:
+                PasteNumber(); break;
+            case Key.C when Keyboard.Modifiers.HasFlag(ModifierKeys.Control):
+                CopyNumber(); break;
             case Key.Enter:
                 if (_state == UiState.Incoming) await AnswerAsync();
                 else if (_state == UiState.Idle) Call_Click(this, new RoutedEventArgs());

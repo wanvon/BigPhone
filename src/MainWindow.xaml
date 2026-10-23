@@ -43,6 +43,14 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Border Background="White" CornerRadius="16" Margin="8">
+                    <!-- right-click: paste / copy / clear (also Ctrl+V, Ctrl+C) -->
+                    <Border.ContextMenu>
+                        <ContextMenu FontSize="32">
+                            <MenuItem Header="📋  Paste number" Click="PasteNumber_Click"/>
+                            <MenuItem Header="📋  Copy number" Click="CopyNumber_Click"/>
+                            <MenuItem Header="✖  Clear" Click="ClearNumber_Click"/>
+                        </ContextMenu>
+                    </Border.ContextMenu>
                     <Viewbox Margin="20,4" StretchDirection="DownOnly" HorizontalAlignment="Center">
                         <!-- number, then a blinking cursor (shown while the window has keyboard focus), then the hint when empty -->
                         <StackPanel Orientation="Horizontal">

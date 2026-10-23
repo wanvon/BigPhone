@@ -3,6 +3,12 @@
 All notable changes to Big Phone. Versions follow `MAJOR.MINOR.PATCH`;
 each release is tagged `vX.Y.Z` on GitHub and installed copies update themselves.
 
+## 1.2.5 - 2026-10-23
+
+- Paste a phone number into the number field: **Ctrl+V** (or Shift+Insert), or right-click the number
+  field → **Paste number**. Formatting is cleaned up ("+1 (941) 315-3095", "941.315.3095", or a number
+  inside a sentence). **Ctrl+C** / right-click → **Copy number** copies it; right-click → **Clear** empties it.
+
 ## 1.2.4 - 2026-10-22
 
 - New texts play a two-note **chime** on the ring device (soft during calls), then the spoken announcement.

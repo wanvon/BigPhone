@@ -11,7 +11,8 @@ works with any standard SIP/UDP provider.
 - Incoming calls take over the whole screen, flash, ring loudly, and **say who is calling**
 - Big coloured status bar: green = ready, red = not connected, blue = talking (with call timer)
 - Shaky double-taps are ignored; closing the window asks first
-- Keyboard: digits / `*` / `#`, **Enter** = call or answer, **Esc** = hang up, **F1–F6** = speed dials
+- Keyboard: digits / `*` / `#`, **Enter** = call or answer, **Esc** = hang up, **F1–F6** = speed dials,
+  **Ctrl+V** = paste a number (also right-click the number field), **Ctrl+C** = copy it
 - Portable, single `.exe`, no install or .NET needed; updates itself from GitHub Releases
 
 ## Install (portable)
