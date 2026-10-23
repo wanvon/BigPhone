@@ -32,6 +32,7 @@ public partial class MainWindow : Window
     readonly DispatcherTimer _autoAnswer = new();
     readonly DispatcherTimer _resetStatus = new() { Interval = TimeSpan.FromSeconds(4) };
     readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromMinutes(10) };
+    readonly DispatcherTimer _caretBlink = new() { Interval = TimeSpan.FromMilliseconds(530) };
     readonly DateTime _startedAt = DateTime.Now;
     DateTime _lastUpdateCheck = DateTime.MinValue;
 
@@ -74,6 +75,11 @@ public partial class MainWindow : Window
         UpdateTextsBadge();
         StartTextWatcher();
         _phone.Start();
+
+        // Blinking cursor in the number field = "your typing goes here". Only while this window has focus.
+        _caretBlink.Tick += (_, _) => Caret.Opacity = Caret.Opacity > 0 ? 0 : 1;
+        Activated += (_, _) => UpdateCaret();
+        Deactivated += (_, _) => UpdateCaret();
 
         _updateTimer.Tick += async (_, _) => await UpdateTickAsync(false);
         _updateTimer.Start();
@@ -145,8 +151,18 @@ public partial class MainWindow : Window
         try { _voice?.SpeakAsyncCancelAll(); _voice?.SpeakAsync(text); } catch { }
     }
 
+    void UpdateCaret()
+    {
+        bool show = IsActive && (_state == UiState.Idle || _state == UiState.InCall);
+        Caret.Visibility = show ? Visibility.Visible : Visibility.Hidden;
+        Caret.Opacity = 1;                  // solid right after a key press, then blink
+        _caretBlink.Stop();
+        if (show) _caretBlink.Start();
+    }
+
     void UpdateNumber()
     {
+        UpdateCaret();
         NumberText.Text = FormatNumber(_number);
         NumberHint.Visibility = _number.Length == 0 && _state == UiState.Idle ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -162,6 +178,7 @@ public partial class MainWindow : Window
 
     void UpdateButtons()
     {
+        UpdateCaret();
         bool idle = _state == UiState.Idle;
         CallButton.IsEnabled = idle;
         CallButtonText.Text = idle && _number.Length == 0 && _settings.LastNumber.Length > 0 ? "↻ REDIAL" : "📞 CALL";

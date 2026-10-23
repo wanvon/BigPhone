@@ -3,6 +3,11 @@
 All notable changes to Big Phone. Versions follow `MAJOR.MINOR.PATCH`;
 each release is tagged `vX.Y.Z` on GitHub and installed copies update themselves.
 
+## 1.2.3 - 2026-10-22
+
+- Blinking cursor in the number field while Big Phone has keyboard focus, as a cue that typing goes there.
+  It disappears when another window is in front (typing won't reach the phone) and while dialing/ringing.
+
 ## 1.2.2 - 2026-10-22
 
 - Audit trail in bigphone.log for texts: each text received (sender, time sent, whether it holds a code),

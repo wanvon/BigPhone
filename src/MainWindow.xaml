@@ -44,13 +44,17 @@
                 </Grid.ColumnDefinitions>
                 <Border Background="White" CornerRadius="16" Margin="8">
                     <Viewbox Margin="20,4" StretchDirection="DownOnly" HorizontalAlignment="Center">
-                        <TextBlock x:Name="NumberText" Text="" FontSize="96" FontWeight="Bold"
-                                   Foreground="Black" FontFamily="Consolas"/>
+                        <!-- number, then a blinking cursor (shown while the window has keyboard focus), then the hint when empty -->
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="NumberText" Text="" FontSize="96" FontWeight="Bold"
+                                       Foreground="Black" FontFamily="Consolas" VerticalAlignment="Center"/>
+                            <Rectangle x:Name="Caret" Width="9" Height="104" Fill="#1E4C9A" Margin="6,0,0,0"
+                                       VerticalAlignment="Center" Visibility="Hidden"/>
+                            <TextBlock x:Name="NumberHint" Text="Type a number or press CONTACTS"
+                                       Foreground="#777" FontSize="48" Margin="18,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
                     </Viewbox>
                 </Border>
-                <TextBlock x:Name="NumberHint" Text="Type a number or press CONTACTS"
-                           Foreground="#777" FontSize="36" IsHitTestVisible="False"
-                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 <Button Grid.Column="1" Style="{StaticResource Big}" Width="200" Background="#5A4A00"
                         Click="Backspace_Click" ToolTip="Erase last digit">
                     <TextBlock Text="⌫ ERASE"/>
